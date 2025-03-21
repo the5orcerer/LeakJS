@@ -1,0 +1,6 @@
+aiohttp==3.8.1
+aiohttp_retry==2.4.6
+colorama==0.4.4
+requests==2.26.0
+PyYAML==5.4.1
+tqdm==4.62.3
