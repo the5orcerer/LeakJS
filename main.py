@@ -130,7 +130,7 @@ async def fetch_url_content(url: str, session: ClientSession) -> str:
         logging.error(f"Error fetching URL {url}: {e}")
         return ""
 
-async def process_url(url: str, patterns: List[Dict[str, Any]], session: ClientSession, output_file: Optional[str] = None) -> None:
+async def process_url(url: str, patterns: List[Dict[str, Any]], session: ClientSession, output_file: Optional[str] = None, verbose: bool = False) -> None:
     """Process a single URL to fetch content and search for patterns."""
     content = await fetch_url_content(url, session)
     if content:
@@ -141,9 +141,10 @@ async def process_url(url: str, patterns: List[Dict[str, Any]], session: ClientS
             else:
                 display_results(url, results)
         else:
-            logging.info(f"No matches found in {url}")
+            if verbose:
+                logging.info(f"No matches found in {url}")
 
-async def process_file(file_path: str, patterns: List[Dict[str, Any]], output_file: Optional[str] = None) -> None:
+async def process_file(file_path: str, patterns: List[Dict[str, Any]], output_file: Optional[str] = None, verbose: bool = False) -> None:
     """Process a single file to read content and search for patterns."""
     content = read_file_content(file_path)
     if content:
@@ -154,20 +155,21 @@ async def process_file(file_path: str, patterns: List[Dict[str, Any]], output_fi
             else:
                 display_results(file_path, results, source_type="File")
         else:
-            logging.info(f"No matches found in {file_path}")
+            if verbose:
+                logging.info(f"No matches found in {file_path}")
 
-async def worker(queue: Queue, patterns: List[Dict[str, Any]], source_type: str, output_file: Optional[str] = None) -> None:
+async def worker(queue: Queue, patterns: List[Dict[str, Any]], source_type: str, output_file: Optional[str] = None, verbose: bool = False) -> None:
     """Worker function for threading."""
     async with RetryClient(raise_for_status=False) as session:
         while not queue.empty():
             source = queue.get()
             if source_type == "URL":
-                await process_url(source, patterns, session, output_file)
+                await process_url(source, patterns, session, output_file, verbose)
             elif source_type == "File":
-                await process_file(source, patterns, output_file)
+                await process_file(source, patterns, output_file, verbose)
             queue.task_done()
 
-async def run_leakjs(urls_file: Optional[str], single_url: Optional[str], patterns_file: Optional[str], direct_patterns: Optional[str], file_path: Optional[str], concurrency: int, output_file: Optional[str]) -> None:
+async def run_leakjs(urls_file: Optional[str], single_url: Optional[str], patterns_file: Optional[str], direct_patterns: Optional[str], file_path: Optional[str], concurrency: int, output_file: Optional[str], verbose: bool) -> None:
     """Main function to handle input and start the scanning process."""
     patterns = load_default_patterns()
     if patterns_file:
@@ -198,7 +200,7 @@ async def run_leakjs(urls_file: Optional[str], single_url: Optional[str], patter
 
     tasks = []
     for _ in range(concurrency):
-        task = asyncio.create_task(worker(queue, patterns, source_type, output_file))
+        task = asyncio.create_task(worker(queue, patterns, source_type, output_file, verbose))
         tasks.append(task)
 
     await asyncio.gather(*tasks)
@@ -216,6 +218,7 @@ def print_help() -> None:
       -f, --file        Path to a JavaScript file to scan
       -c, --concurrency Number of concurrent threads (default: 1)
       -o, --output      Path to the output file to save results
+      -v, --verbose     Enable verbose logging
       -h, --help        Show this help message and exit
     """
     print(help_text)
@@ -236,6 +239,7 @@ def main():
     parser.add_argument('-f', '--file', type=str, help='Path to a JavaScript file to scan')
     parser.add_argument('-c', '--concurrency', type=int, default=1, help='Number of concurrent threads (default: 1)')
     parser.add_argument('-o', '--output', type=str, help='Path to the output file to save results')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose logging')
     parser.add_argument('-h', '--help', action='store_true', help='Show help message and exit')
 
     args = parser.parse_args()
@@ -243,7 +247,9 @@ def main():
     if args.help:
         print_help()
     else:
-        asyncio.run(run_leakjs(urls_file=args.list, single_url=args.url, patterns_file=args.patterns, direct_patterns=args.regex, file_path=args.file, concurrency=args.concurrency, output_file=args.output))
+        if args.verbose:
+            logging.getLogger().setLevel(logging.DEBUG)
+        asyncio.run(run_leakjs(urls_file=args.list, single_url=args.url, patterns_file=args.patterns, direct_patterns=args.regex, file_path=args.file, concurrency=args.concurrency, output_file=args.output, verbose=args.verbose))
 
 if __name__ == "__main__":
     main()
