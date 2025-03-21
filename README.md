@@ -17,7 +17,7 @@ LeakJS is a powerful tool for scanning JavaScript files and URLs for predefined 
 ```bash
 git clone https://github.com/the5orcerer/LeakJS
 cd LeakJS
-pip install .
+pip3 install . --break
 ```
 
 ## Usage
