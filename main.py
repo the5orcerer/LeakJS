@@ -1,3 +1,4 @@
+#!/bin/python3
 import re
 import asyncio
 import aiohttp
