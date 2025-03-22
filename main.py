@@ -32,8 +32,8 @@ def get_local_version() -> str:
         version_file = os.path.expanduser(VERSION_FILE)
         with open(version_file, 'r') as file:
             return file.read()
-    except FileNotFoundError as e:
-        return e
+    except FileNotFoundError:
+        return "0.0.0"
 
 def banner():
     init(autoreset=True)
