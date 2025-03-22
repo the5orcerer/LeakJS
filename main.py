@@ -31,7 +31,7 @@ def get_local_version() -> str:
     try:
         version_file = os.path.expanduser(VERSION_FILE)
         with open(version_file, 'r') as file:
-            return file.read().strip
+            return file.read().strip()
     except FileNotFoundError:
         return "0.0.0"
 
