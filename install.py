@@ -5,7 +5,7 @@ import os
 def install_packages():
     """Install required packages from requirements.txt."""
     try:
-        subprocess.check_call([sys.executable, "-m", "pip3", "install", "-r", "requirements.txt", "--break"])
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt", "--break"])
         print("[ INF ] Packages installed successfully.")
     except subprocess.CalledProcessError as e:
         print(f"An error occurred while installing packages: {e}")
