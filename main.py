@@ -31,6 +31,7 @@ def get_local_version() -> str:
         return r 
     except:
         return "0.0.0"
+version = get_local_version()
 
 def banner():
     init(autoreset=True)
