@@ -1,5 +1,4 @@
 #!/bin/python3
-import requests
 import re
 import asyncio
 import aiohttp
@@ -21,17 +20,18 @@ init(autoreset=True)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+tool_url = "https://github.com/the5orcerer/LeakJS"
+VERSION_FILE = "~/.config/leakjs/version.txt"
 REMOTE_VERSION_URL = "https://raw.githubusercontent.com/the5orcerer/LeakJS/main/version.txt"
 REGEX_REPO = "https://github.com/the5orcerer/Bishop"
 
 def get_local_version() -> str:
     """Get the local version from the version.txt file."""
     try:
-        r = requests.get(REMOTE_VERSION_URL)
-        return r.content
-    except:
+        with open(VERSION_FILE, 'r') as file:
+            return file.read().strip()
+    except FileNotFoundError:
         return "0.0.0"
-version = get_local_version()
 
 def banner():
     init(autoreset=True)
@@ -246,7 +246,9 @@ async def run_leakjs(urls_file: Optional[str], single_url: Optional[str], patter
 
 def update_tool() -> None:
     """Function to update the tool automatically."""
-    subprocess.run(["git", "pull"], check=True)
+    subprocess.run(["git", "clone", tool_url], check=True)
+    subprocess.run(["cd", "LeakJS"])
+    subprocess.run(["python3", "install.py"])
     print(f"[{Fore.GREEN} SUCC {Style.RESET_ALL}] LeakJS updated successfully")
 
 def download_regexes(repo_url: str) -> None:
