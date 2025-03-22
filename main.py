@@ -248,7 +248,7 @@ async def run_leakjs(urls_file: Optional[str], single_url: Optional[str], patter
 def update_tool() -> None:
     """Function to update the tool automatically."""
     subprocess.run(["git", "clone", tool_url], check=True)
-    subprocess.run(["cd", "LeakJS"])
+    os.chdir("LeakJS")
     subprocess.run(["python3", "install.py"])
     print(f"[{Fore.GREEN} SUCC {Style.RESET_ALL}] LeakJS updated successfully")
 
