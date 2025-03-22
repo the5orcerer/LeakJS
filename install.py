@@ -21,7 +21,7 @@ def move_and_setup():
         print("[ INF ] Files moved and permissions set successfully.")
         
         # Check if .config/leakjs directory exists, if not create it
-        config_dir = os.path.expanduser("~/.config/leakjs")
+        config_dir = os.path.expanduser("~/.config/LeakJS")
         if not os.path.exists(config_dir):
             os.makedirs(config_dir)
             print(f"[ INF ] Directory {config_dir} created successfully.")
