@@ -1,4 +1,5 @@
 #!/bin/python3
+import requests
 import re
 import asyncio
 import aiohttp
@@ -20,16 +21,15 @@ init(autoreset=True)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-VERSION_FILE = "version.txt"
-REMOTE_VERSION_URL = "https://raw.githubusercontent.com/the5orcerer/LeakJS/refs/heads/main/version.txt"
+REMOTE_VERSION_URL = "https://raw.githubusercontent.com/the5orcerer/LeakJS/main/version.txt"
 REGEX_REPO = "https://github.com/the5orcerer/Bishop"
 
 def get_local_version() -> str:
     """Get the local version from the version.txt file."""
     try:
-        with open(VERSION_FILE, 'r') as file:
-            return file.read().strip()
-    except FileNotFoundError:
+        r = requests.get(REMOTE_VERSION_URL)
+        return r 
+    except:
         return "0.0.0"
 
 def banner():
