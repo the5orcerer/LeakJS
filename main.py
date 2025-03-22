@@ -37,9 +37,8 @@ def get_local_version() -> str:
 
 def banner():
     init(autoreset=True)
-    version = get_local_version()
     print(f"""
-                        __    v{version}     __       _______
+                        __               __       _______
                        / /   ___  ____ _/ /__    / / ___/
                       / /   / _ \\/ __ `/ //_/_  / /\\__ \\ 
                      / /___/  __/ /_/ / ,< / /_/ /___/ / 
