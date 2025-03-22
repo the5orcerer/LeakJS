@@ -28,7 +28,7 @@ def get_local_version() -> str:
     """Get the local version from the version.txt file."""
     try:
         r = requests.get(REMOTE_VERSION_URL)
-        return r 
+        return r.content
     except:
         return "0.0.0"
 version = get_local_version()
