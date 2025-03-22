@@ -285,7 +285,8 @@ async def get_remote_version() -> str:
         try:
             async with session.get(REMOTE_VERSION_URL) as response:
                 response.raise_for_status()
-                return await response.text().strip()
+                text = await response.text()
+                return text.strip()
         except aiohttp.ClientError:
             return get_local_version()
 
