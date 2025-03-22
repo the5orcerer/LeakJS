@@ -20,18 +20,20 @@ init(autoreset=True)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+CONFIG="~/.config/LeakJS"
 tool_url = "https://github.com/the5orcerer/LeakJS"
-VERSION_FILE = "~/.config/LeakJS/version.txt"
+VERSION_FILE = f"{CONFIG}/version.txt"
 REMOTE_VERSION_URL = "https://raw.githubusercontent.com/the5orcerer/LeakJS/main/version.txt"
 REGEX_REPO = "https://github.com/the5orcerer/Bishop"
 
 def get_local_version() -> str:
     """Get the local version from the version.txt file."""
     try:
-        with open(VERSION_FILE, 'r') as file:
-            return file.read().strip()
-    except FileNotFoundError:
-        return "0.0.0"
+        version_file = os.path.expanduser(VERSION_FILE)
+        with open(version_file, 'r') as file:
+            return file.read()
+    except FileNotFoundError as e:
+        return e
 
 def banner():
     init(autoreset=True)
@@ -66,7 +68,7 @@ def read_patterns(yaml_file: str) -> List[Dict[str, Any]]:
 def load_default_patterns() -> List[Dict[str, Any]]:
     """Load default patterns from the .config/LeakJS directory."""
     patterns = []
-    config_dir = os.path.expanduser("~/.config/LeakJS")
+    config_dir = os.path.expanduser(CONFIG)
     if os.path.exists(config_dir) and os.path.isdir(config_dir):
         for file_name in os.listdir(config_dir):
             if file_name.endswith(".yaml"):
@@ -253,7 +255,7 @@ def update_tool() -> None:
 
 def download_regexes(repo_url: str) -> None:
     """Download regexes from a repository into .config/LeakJS."""
-    config_dir = os.path.expanduser("~/.config/LeakJS")
+    config_dir = os.path.expanduser(CONFIG)
     if not os.path.exists(config_dir):
         os.makedirs(config_dir)
     subprocess.run(["git", "clone", repo_url, config_dir], check=True)
