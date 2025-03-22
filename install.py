@@ -12,12 +12,27 @@ def install_packages():
         sys.exit(1)
 
 def move_and_setup():
-    """Move and setup the main.py file."""
+    """Move and setup the main.py file and handle .config/leakjs directory."""
     try:
+        # Move main.py to leakjs and set permissions
         os.rename("main.py", "leakjs")
         os.chmod("leakjs", 0o755)
         subprocess.check_call(["sudo", "mv", "leakjs", "/usr/local/bin"])
         print("[ INF ] Files moved and permissions set successfully.")
+        
+        # Check if .config/leakjs directory exists, if not create it
+        config_dir = os.path.expanduser("~/.config/leakjs")
+        if not os.path.exists(config_dir):
+            os.makedirs(config_dir)
+            print(f"[ INF ] Directory {config_dir} created successfully.")
+        
+        # Move version.txt to .config/leakjs directory
+        version_file = "version.txt"
+        if os.path.exists(version_file):
+            os.rename(version_file, os.path.join(config_dir, "version.txt"))
+            print(f"[ INF ] {version_file} moved to {config_dir} successfully.")
+        else:
+            print(f"[ WRN ] {version_file} does not exist.")
     except (OSError, subprocess.CalledProcessError) as e:
         print(f"[ ERR ] An error occurred while moving and setting up files: {e}")
         sys.exit(1)
