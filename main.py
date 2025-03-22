@@ -21,7 +21,7 @@ init(autoreset=True)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 VERSION_FILE = "version.txt"
-REMOTE_VERSION_URL = "https://raw.githubusercontent.com/the5orcerer/LeakJS/main/version.txt"
+REMOTE_VERSION_URL = "https://raw.githubusercontent.com/the5orcerer/LeakJS/refs/heads/main/version.txt"
 REGEX_REPO = "https://github.com/the5orcerer/Bishop"
 
 def get_local_version() -> str:
