@@ -53,7 +53,7 @@ def read_urls(file_path: str) -> List[str]:
             urls = [line.strip() for line in file if line.strip().endswith('.js')]
         return sorted(urls)
     except FileNotFoundError:
-        print(f"[{Fore.RED} ERR {Style.RESET_ALL}] File not found: {file_path}")
+        print(f"[{Fore.RED}ERR{Style.RESET_ALL}] File not found: {file_path}")
 
 def read_patterns(yaml_file: str) -> List[Dict[str, Any]]:
     """Read patterns from a YAML file."""
@@ -62,7 +62,7 @@ def read_patterns(yaml_file: str) -> List[Dict[str, Any]]:
             data = yaml.safe_load(file)
         return data['patterns']
     except FileNotFoundError:
-        print(f"[{Fore.RED} ERR {Style.RESET_ALL}] Regex file not found: {yaml_file}")
+        print(f"[{Fore.RED}ERR{Style.RESET_ALL}] Regex file not found: {yaml_file}")
 
 def load_default_patterns() -> List[Dict[str, Any]]:
     """Load default patterns from the .config/LeakJS directory."""
@@ -99,10 +99,10 @@ def read_file_content(file_path: str) -> str:
         with open(file_path, 'r') as file:
             return file.read()
     except FileNotFoundError:
-        print(f"[{Fore.RED} ERR {Style.RESET_ALL}] File not found: {file_path}")
+        print(f"[{Fore.RED}ERR{Style.RESET_ALL}] File not found: {file_path}")
         return ""
     except IOError as e:
-        print(f"[{Fore.RED} ERR {Style.RESET_ALL}] Error reading file {file_path}: {e}")
+        print(f"[{Fore.RED}ERR{Style.RESET_ALL}] Error reading file {file_path}: {e}")
         return ""
 
 def search_patterns(content: str, patterns: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
@@ -120,7 +120,7 @@ def search_patterns(content: str, patterns: List[Dict[str, Any]]) -> Dict[str, D
 def display_results(source: str, results: Dict[str, Dict[str, Any]], source_type: str = "URL", verbose: bool = False) -> None:
     """Display the results of pattern matching."""
     if results:
-        print(f"[{Fore.GREEN} SUCC {Style.RESET_ALL}] {source} ({source_type})\n")
+        print(f"[{Fore.GREEN}SUCC{Style.RESET_ALL}] {source} ({source_type})\n")
         for name, data in results.items():
             print(f"Regex name: {name}")
             for match in data['matches']:
@@ -197,7 +197,7 @@ async def run_leakjs(urls_file: Optional[str], single_url: Optional[str], patter
     if direct_patterns:
         patterns.extend(parse_direct_patterns(direct_patterns))
 
-    print(f"[{Fore.BLUE} INF {Style.RESET_ALL}] Templates loaded: {len(patterns)}\n")
+    print(f"[{Fore.BLUE}INF{Style.RESET_ALL}] Templates loaded: {len(patterns)}\n")
 
     urls = []
     if urls_file:
@@ -208,11 +208,11 @@ async def run_leakjs(urls_file: Optional[str], single_url: Optional[str], patter
         urls = [line.strip() for line in sys.stdin if line.strip().endswith('.js')]
 
     if not urls and not file_path:
-        print(f"[{Fore.RED} ERR {Style.RESET_ALL}] No URLs or files provided.")
+        print(f"[{Fore.RED}ERR{Style.RESET_ALL}] No URLs or files provided.")
         return
 
     if silent and not output_file:
-        print(f"[{Fore.RED} ERR {Style.RESET_ALL}] Output file must be specified in silent mode (-s)")
+        print(f"[{Fore.RED}ERR{Style.RESET_ALL}] Output file must be specified in silent mode (-s)")
         return
 
     queue = Queue()
@@ -245,20 +245,13 @@ async def run_leakjs(urls_file: Optional[str], single_url: Optional[str], patter
 
         await asyncio.gather(*tasks)
 
-def update_tool() -> None:
-    """Function to update the tool automatically."""
-    subprocess.run(["git", "clone", tool_url], check=True)
-    os.chdir("LeakJS")
-    subprocess.run(["python3", "install.py"])
-    print(f"[{Fore.GREEN} SUCC {Style.RESET_ALL}] LeakJS updated successfully")
-
 def download_regexes(repo_url: str) -> None:
     """Download regexes from a repository into .config/LeakJS."""
     config_dir = os.path.expanduser(CONFIG)
     if not os.path.exists(config_dir):
         os.makedirs(config_dir)
     subprocess.run(["git", "clone", repo_url, config_dir], check=True)
-    print(f"[{Fore.GREEN} SUCC {Style.RESET_ALL}] Regexes downloaded successfully")
+    print(f"[{Fore.GREEN}SUCC{Style.RESET_ALL}] Regexes downloaded successfully")
 
     # Add to bashrc or fish_config for tab support
     shell = os.getenv('SHELL')
@@ -273,12 +266,12 @@ def download_regexes(repo_url: str) -> None:
             fish_config.write(f'\ncomplete -c leakjs -f -a "(ls {config_dir})"\n')
         subprocess.run(["source", fish_config_path], check=True, shell=True)
 
-    print(f"[{Fore.GREEN} SUCC {Style.RESET_ALL}]Tab completion configured successfully")
+    print(f"[{Fore.GREEN}SUCC{Style.RESET_ALL}]Tab completion configured successfully")
 
 def update_templates() -> None:
     """Function to update templates."""
     download_regexes(REGEX_REPO)
-    print(f"[{Fore.GREEN} SUCC {Style.RESET_ALL}]Templates updated successfully")
+    print(f"[{Fore.GREEN}SUCC{Style.RESET_ALL}]Templates updated successfully")
 
 async def get_remote_version() -> str:
     """Get the remote version from the GitHub repository."""
@@ -296,10 +289,25 @@ async def check_version() -> None:
     local_version = get_local_version()
     remote_version = await get_remote_version()
     if local_version == remote_version:
-        print(f"[{Fore.BLUE} INF {Style.RESET_ALL}] Current LeakJS version v{local_version} [updated]")
+        print(f"[{Fore.BLUE}INF{Style.RESET_ALL}] Current LeakJS version v{local_version} [{Fore.GREEN}updated{Style.RESET_ALL}]")
     else:
-        print(f"[{Fore.RED} ERR {Style.RESET_ALL}] Current LeakJS version v{local_version} [outdated]")
-        print(f"[{Fore.BLUE} INF {Style.RESET_ALL}] Latest LeakJS version v{remote_version} available. Run with -up to update.")
+        print(f"[{Fore.RED}ERR{Style.RESET_ALL}] Current LeakJS version v{local_version} [{Fore.RED}outdated{Style.RESET_ALL}]")
+        print(f"[{Fore.BLUE}INF{Style.RESET_ALL}] Latest LeakJS version v{remote_version} available. Run with -up to update.")
+
+def update_tool() -> None:
+    """Function to update the tool automatically."""
+    if check_version() == True:
+        print(f"[{Fore.Blue}INF{Style.RESET_ALL}] Already updated; nothing to update here")
+    else:
+        condir = True if os.path.exists("LeakJS") and os.path.isdir("LeakJS") else False
+        if condir == True:
+            subprocess.run(["rm", "-rf", "LeakJS"], check=True)
+        subprocess.run(["git", "clone", tool_url], check=True)
+        os.chdir("LeakJS")
+        subprocess.run(["python3", "install.py"])
+        subprocess.run(["rm", "-rf", "../LeakJS"], check=True)
+        print(f"[{Fore.GREEN}SUCC{Style.RESET_ALL}] LeakJS updated successfully")
+
 
 def print_help() -> None:
     """Print help message."""
@@ -332,7 +340,7 @@ def print_help() -> None:
     print(help_text)
 
 def handle_sigint(signal, frame):
-    print(f"\n[{Fore.RED} ERR {Style.RESET_ALL}] Process interrupted. Exiting gracefully!")
+    print(f"\n[{Fore.RED}ERR{Style.RESET_ALL}] Process interrupted. Exiting gracefully!")
     sys.exit(0)
 
 def main():
@@ -369,6 +377,6 @@ def main():
             asyncio.run(check_version())
             asyncio.run(run_leakjs(urls_file=args.list, single_url=args.url, patterns_file=args.patterns, direct_patterns=args.regex, file_path=args.file, concurrency=args.concurrency, output_file=args.output, verbose=args.verbose, silent=args.silent))
         except re.error:
-            print(f"[{Fore.RED} ERR {Style.RESET_ALL}] Something wrong with regex patterns")
+            print(f"[{Fore.RED}ERR{Style.RESET_ALL}] Something wrong with regex patterns")
 if __name__ == "__main__":
     main()
