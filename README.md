@@ -21,7 +21,8 @@ To install LeakJS, follow these steps:
 ```bash
 git clone https://github.com/the5orcerer/LeakJS
 cd LeakJS
-python3 setup.py --install
+python3 install.py
+leakjs -h (For testing purpose)
 ```
 
 ## 🛠️ Usage
