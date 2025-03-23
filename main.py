@@ -58,9 +58,12 @@ def read_urls(file_path: str) -> List[str]:
 def read_patterns(yaml_file: str) -> List[Dict[str, Any]]:
     """Read patterns from a YAML file."""
     try:
-        with open(yaml_file, 'r') as file:
-            data = yaml.safe_load(file)
-        return data['patterns']
+        try:
+            with open(yaml_file, 'r') as file:
+                data = yaml.safe_load(file)
+            return data['patterns']
+        except TypeError: 
+            print(f"[{Fore.RED}ERR{Style.RESET_ALL}] No regex found")
     except FileNotFoundError:
         print(f"[{Fore.RED}ERR{Style.RESET_ALL}] Regex file not found: {yaml_file}")
 
@@ -245,33 +248,34 @@ async def run_leakjs(urls_file: Optional[str], single_url: Optional[str], patter
 
         await asyncio.gather(*tasks)
 
+
 def download_regexes(repo_url: str) -> None:
     """Download regexes from a repository into .config/LeakJS."""
-    config_dir = os.path.expanduser(CONFIG)
+    config_dir = os.path.expanduser(".config/LeakJS") # Assuming CONFIG is intended to be .config/LeakJS
+    bishop_dir = os.path.join(config_dir, "Bishop")
+
+    if not os.path.exists(bishop_dir):
+        os.makedirs(config_dir, exist_ok=True) # Ensure config_dir exists
+        os.chdir(config_dir)
+        try:
+            subprocess.run(["git", "clone", repo_url], check=True)
+            print(f"[{Fore.GREEN}SUCC{Style.RESET_ALL}] Regexes downloaded successfully")
+        except subprocess.CalledProcessError as e:
+            print(f"[{Fore.RED}ERR{Style.RESET_ALL}] Git clone failed: {e}")
+            return # Exit if clone fails
+    else:
+        print(f"[{Fore.YELLOW}WARN{Style.RESET_ALL}] Bishop directory already exists, skipping cloning.")
+
+    config_dir = bishop_dir # Update config_dir to point to Bishop directory
+    config_dir = os.path.expanduser(config_dir)
     if not os.path.exists(config_dir):
-        os.makedirs(config_dir)
-    subprocess.run(["git", "clone", repo_url, config_dir], check=True)
-    print(f"[{Fore.GREEN}SUCC{Style.RESET_ALL}] Regexes downloaded successfully")
-
-    # Add to bashrc or fish_config for tab support
-    shell = os.getenv('SHELL')
-    if 'bash' in shell:
-        bashrc_path = os.path.expanduser("~/.bashrc")
-        with open(bashrc_path, 'a') as bashrc:
-            bashrc.write(f'\ncomplete -W "$(ls {config_dir})" leakjs\n')
-        subprocess.run(["source", bashrc_path], check=True, shell=True)
-    elif 'fish' in shell:
-        fish_config_path = os.path.expanduser("~/.config/fish/config.fish")
-        with open(fish_config_path, 'a') as fish_config:
-            fish_config.write(f'\ncomplete -c leakjs -f -a "(ls {config_dir})"\n')
-        subprocess.run(["source", fish_config_path], check=True, shell=True)
-
-    print(f"[{Fore.GREEN}SUCC{Style.RESET_ALL}]Tab completion configured successfully")
+        print(f"[{Fore.RED}ERR{Style.RESET_ALL}] Bishop directory not found after (or instead of) cloning.")
+        return
 
 def update_templates() -> None:
     """Function to update templates."""
     download_regexes(REGEX_REPO)
-    print(f"[{Fore.GREEN}SUCC{Style.RESET_ALL}]Templates updated successfully")
+    print(f"[{Fore.GREEN}SUCC{Style.RESET_ALL}] Templates updated successfully")
 
 async def get_remote_version() -> str:
     """Get the remote version from the GitHub repository."""
