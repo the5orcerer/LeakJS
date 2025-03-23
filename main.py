@@ -296,17 +296,14 @@ async def check_version() -> None:
 
 def update_tool() -> None:
     """Function to update the tool automatically."""
-    if check_version() == True:
-        print(f"[{Fore.Blue}INF{Style.RESET_ALL}] Already updated; nothing to update here")
-    else:
-        condir = True if os.path.exists("LeakJS") and os.path.isdir("LeakJS") else False
-        if condir == True:
-            subprocess.run(["rm", "-rf", "LeakJS"], check=True)
-        subprocess.run(["git", "clone", tool_url], check=True)
-        os.chdir("LeakJS")
-        subprocess.run(["python3", "install.py"])
-        subprocess.run(["rm", "-rf", "../LeakJS"], check=True)
-        print(f"[{Fore.GREEN}SUCC{Style.RESET_ALL}] LeakJS updated successfully")
+    condir = True if os.path.exists("LeakJS") and os.path.isdir("LeakJS") else False
+    if condir == True:
+        subprocess.run(["rm", "-rf", "LeakJS"], check=True)
+    subprocess.run(["git", "clone", tool_url], check=True)
+    os.chdir("LeakJS")
+    subprocess.run(["python3", "install.py"])
+    subprocess.run(["rm", "-rf", "../LeakJS"], check=True)
+    print(f"[{Fore.GREEN}SUCC{Style.RESET_ALL}] LeakJS updated successfully")
 
 
 def print_help() -> None:
