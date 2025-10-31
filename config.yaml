@@ -1,0 +1,7 @@
+concurrency: 4
+output: results.txt
+verbose: true
+silent: false
+json: false
+stats: true
+patterns_dir: regex

@@ -9,7 +9,7 @@ patterns:
       confidence: "Medium"
   - pattern:
       name: "AWS Session Token"
-      regex: "[0-9a-zA-Z/+]{260,2048}"
+      regex: "[0-9a-zA-Z/+]{260,1000}"
       confidence: "Medium"
   - pattern:
       name: "AWS Account ID"

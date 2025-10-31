@@ -8,7 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"regexp"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -33,6 +33,57 @@ type ScanStats struct {
 	TotalMatches int
 	PatternsUsed int
 	ScanDuration time.Duration
+}
+
+type Config struct {
+	Concurrency  int    `yaml:"concurrency"`
+	Output       string `yaml:"output"`
+	Verbose      bool   `yaml:"verbose"`
+	Silent       bool   `yaml:"silent"`
+	JSON         bool   `yaml:"json"`
+	Stats        bool   `yaml:"stats"`
+	PatternsDir  string `yaml:"patterns_dir"`
+	PatternsFile string `yaml:"patterns_file"`
+	Exclude      string `yaml:"exclude"`
+}
+
+func FilterExcludedPatterns(pats []patterns.Pattern, excludeList string) []patterns.Pattern {
+	if excludeList == "" {
+		return pats
+	}
+
+	excluded := make(map[string]bool)
+	for _, name := range strings.Split(excludeList, ",") {
+		excluded[strings.TrimSpace(name)] = true
+	}
+
+	var filtered []patterns.Pattern
+	for _, pattern := range pats {
+		if !excluded[pattern.Name] {
+			filtered = append(filtered, pattern)
+		}
+	}
+
+	return filtered
+}
+
+func LoadConfig(configFile string) (*Config, error) {
+	if configFile == "" {
+		return &Config{}, nil
+	}
+
+	data, err := os.ReadFile(configFile)
+	if err != nil {
+		return nil, err
+	}
+
+	var config Config
+	err = yaml.Unmarshal(data, &config)
+	if err != nil {
+		return nil, err
+	}
+
+	return &config, nil
 }
 
 func (s *ScanStats) Print() {
@@ -76,7 +127,7 @@ func ReadPatterns(yamlFile string) ([]patterns.Pattern, error) {
 
 	var pats []patterns.Pattern
 	for _, pc := range config.Patterns {
-		re, err := regexp.Compile(pc.Pattern.Regex)
+		re, err := patterns.GetCompiledPattern(pc.Pattern.Regex)
 		if err != nil {
 			log.Printf("Invalid regex in pattern %s: %v", pc.Pattern.Name, err)
 			continue
@@ -88,6 +139,33 @@ func ReadPatterns(yamlFile string) ([]patterns.Pattern, error) {
 	return pats, nil
 }
 
+func ReadAllPatternsFromDir(dirPath string) ([]patterns.Pattern, error) {
+	var allPats []patterns.Pattern
+
+	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Only process YAML files
+		if !info.IsDir() && strings.HasSuffix(strings.ToLower(path), ".yaml") {
+			pats, err := ReadPatterns(path)
+			if err != nil {
+				log.Printf("Error reading patterns from %s: %v", path, err)
+				return nil // Continue with other files
+			}
+			allPats = append(allPats, pats...)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return allPats, nil
+}
+
 func ParseDirectPatterns(patternsStr string) ([]patterns.Pattern, error) {
 	var pats []patterns.Pattern
 	for i, pattern := range strings.Split(patternsStr, ";") {
@@ -95,7 +173,7 @@ func ParseDirectPatterns(patternsStr string) ([]patterns.Pattern, error) {
 		if pattern == "" {
 			continue
 		}
-		re, err := regexp.Compile(pattern)
+		re, err := patterns.GetCompiledPattern(pattern)
 		if err != nil {
 			log.Printf("Invalid regex pattern: %s - Skipped", pattern)
 			continue
@@ -253,7 +331,11 @@ func ProcessFile(filePath string, pats []patterns.Pattern, outputFile string, ve
 	}
 }
 
-func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, outputFile string, concurrency int, verbose, silent, json, showStats bool, stats *ScanStats) error {
+func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allDir, configFile, excludePatterns, outputFile string, concurrency int, verbose, silent, json, showStats bool, benchmarkIterations int, stats *ScanStats) error {
+	if benchmarkIterations > 0 {
+		return RunBenchmark(urlsFile, singleURL, patternsFile, directPatterns, filePath, allDir, configFile, excludePatterns, outputFile, concurrency, verbose, silent, json, benchmarkIterations)
+	}
+
 	start := time.Now()
 	defer func() {
 		if showStats {
@@ -262,9 +344,51 @@ func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, outp
 		}
 	}()
 
+	// Load configuration file if provided
+	config, err := LoadConfig(configFile)
+	if err != nil {
+		return fmt.Errorf("error loading config file: %v", err)
+	}
+
+	// Override config with command-line arguments if provided
+	if concurrency == 1 && config.Concurrency > 0 {
+		concurrency = config.Concurrency
+	}
+	if outputFile == "" && config.Output != "" {
+		outputFile = config.Output
+	}
+	if !verbose && config.Verbose {
+		verbose = config.Verbose
+	}
+	if !silent && config.Silent {
+		silent = config.Silent
+	}
+	if !json && config.JSON {
+		json = config.JSON
+	}
+	if !showStats && config.Stats {
+		showStats = config.Stats
+	}
+	if allDir == "" && config.PatternsDir != "" {
+		allDir = config.PatternsDir
+	}
+	if patternsFile == "" && config.PatternsFile != "" {
+		patternsFile = config.PatternsFile
+	}
+	if excludePatterns == "" && config.Exclude != "" {
+		excludePatterns = config.Exclude
+	}
+
 	pats := patterns.GetBuiltInPatterns()
 
-	if patternsFile != "" {
+	if allDir != "" {
+		// Load all patterns from directory
+		dirPats, err := ReadAllPatternsFromDir(allDir)
+		if err != nil {
+			return fmt.Errorf("error loading patterns from directory %s: %v", allDir, err)
+		}
+		pats = append(pats, dirPats...)
+	} else if patternsFile != "" {
 		additionalPats, err := ReadPatterns(patternsFile)
 		if err != nil {
 			return err
@@ -278,6 +402,11 @@ func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, outp
 			return err
 		}
 		pats = append(pats, additionalPats...)
+	}
+
+	// Filter out excluded patterns
+	if excludePatterns != "" {
+		pats = FilterExcludedPatterns(pats, excludePatterns)
 	}
 
 	stats.PatternsUsed = len(pats)
@@ -360,5 +489,40 @@ func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, outp
 	}
 
 	wg.Wait()
+	return nil
+}
+
+func RunBenchmark(urlsFile, singleURL, patternsFile, directPatterns, filePath, allDir, configFile, excludePatterns, outputFile string, concurrency int, verbose, silent, json bool, benchmarkIterations int) error {
+	blue.Printf("[INF] Running benchmark with %d iterations...\n", benchmarkIterations)
+
+	var totalDuration time.Duration
+	var totalMatches int
+
+	for i := 0; i < benchmarkIterations; i++ {
+		yellow.Printf("[BENCH] Iteration %d/%d\n", i+1, benchmarkIterations)
+
+		stats := &ScanStats{}
+		start := time.Now()
+
+		err := RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allDir, configFile, excludePatterns, outputFile, concurrency, verbose, true, json, false, 0, stats)
+		if err != nil {
+			return fmt.Errorf("benchmark iteration %d failed: %v", i+1, err)
+		}
+
+		duration := time.Since(start)
+		totalDuration += duration
+		totalMatches += stats.TotalMatches
+
+		fmt.Printf("Iteration %d: %v, %d matches\n", i+1, duration, stats.TotalMatches)
+	}
+
+	avgDuration := totalDuration / time.Duration(benchmarkIterations)
+	avgMatches := totalMatches / benchmarkIterations
+
+	blue.Printf("\n[BENCH] Benchmark completed!\n")
+	fmt.Printf("Average scan time: %v\n", avgDuration)
+	fmt.Printf("Average matches per iteration: %d\n", avgMatches)
+	fmt.Printf("Total benchmark time: %v\n", totalDuration)
+
 	return nil
 }
