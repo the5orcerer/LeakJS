@@ -17,6 +17,7 @@ import (
 	"github.com/schollz/progressbar/v3"
 	"gopkg.in/yaml.v3"
 
+	"github.com/the5orcerer/LeakJS/internal/assets"
 	"github.com/the5orcerer/LeakJS/internal/patterns"
 )
 
@@ -68,11 +69,35 @@ func FilterExcludedPatterns(pats []patterns.Pattern, excludeList string) []patte
 }
 
 func LoadConfig(configFile string) (*Config, error) {
-	if configFile == "" {
+	var configPath string
+
+	if configFile != "" {
+		// Use explicitly provided config file
+		configPath = configFile
+	} else {
+		// Check default locations in order of preference
+		homeDir, err := os.UserHomeDir()
+		if err == nil {
+			// Check ~/.config/leakjs/config.yaml
+			candidatePath := filepath.Join(homeDir, ".config", "leakjs", "config.yaml")
+			if _, err := os.Stat(candidatePath); err == nil {
+				configPath = candidatePath
+			} else {
+				// Check ~/.leakjs/config.yaml (fallback)
+				candidatePath = filepath.Join(homeDir, ".leakjs", "config.yaml")
+				if _, err := os.Stat(candidatePath); err == nil {
+					configPath = candidatePath
+				}
+			}
+		}
+	}
+
+	// If no config file found, return default config
+	if configPath == "" {
 		return &Config{}, nil
 	}
 
-	data, err := os.ReadFile(configFile)
+	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, err
 	}
@@ -139,31 +164,92 @@ func ReadPatterns(yamlFile string) ([]patterns.Pattern, error) {
 	return pats, nil
 }
 
-func ReadAllPatternsFromDir(dirPath string) ([]patterns.Pattern, error) {
+func ReadPatternsFromEmbeddedFS() ([]patterns.Pattern, error) {
 	var allPats []patterns.Pattern
 
-	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		// Only process YAML files
-		if !info.IsDir() && strings.HasSuffix(strings.ToLower(path), ".yaml") {
-			pats, err := ReadPatterns(path)
-			if err != nil {
-				log.Printf("Error reading patterns from %s: %v", path, err)
-				return nil // Continue with other files
-			}
-			allPats = append(allPats, pats...)
-		}
-		return nil
-	})
-
+	// Read all files in the embedded regex directory
+	entries, err := assets.EmbeddedRegexFS.ReadDir("regex")
 	if err != nil {
 		return nil, err
 	}
 
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(strings.ToLower(entry.Name()), ".yaml") {
+			filePath := "regex/" + entry.Name()
+			file, err := assets.EmbeddedRegexFS.Open(filePath)
+			if err != nil {
+				log.Printf("Error opening embedded file %s: %v", filePath, err)
+				continue
+			}
+
+			data, err := io.ReadAll(file)
+			file.Close()
+			if err != nil {
+				log.Printf("Error reading embedded file %s: %v", filePath, err)
+				continue
+			}
+
+			var config patterns.Config
+			err = yaml.Unmarshal(data, &config)
+			if err != nil {
+				log.Printf("Error parsing embedded YAML %s: %v", filePath, err)
+				continue
+			}
+
+			for _, pc := range config.Patterns {
+				re, err := patterns.GetCompiledPattern(pc.Pattern.Regex)
+				if err != nil {
+					log.Printf("Invalid regex in embedded pattern %s: %v", pc.Pattern.Name, err)
+					continue
+				}
+				pattern := pc.Pattern
+				pattern.Compiled = re
+				allPats = append(allPats, pattern)
+			}
+		}
+	}
+
 	return allPats, nil
+}
+
+func ReadAllPatternsFromDir(dirPath string) ([]patterns.Pattern, error) {
+	var allPats []patterns.Pattern
+
+	// First try to read from filesystem
+	if _, err := os.Stat(dirPath); err == nil {
+		// Directory exists, read from filesystem
+		err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+
+			// Only process YAML files
+			if !info.IsDir() && strings.HasSuffix(strings.ToLower(path), ".yaml") {
+				pats, err := ReadPatterns(path)
+				if err != nil {
+					log.Printf("Error reading patterns from %s: %v", path, err)
+					return nil // Continue with other files
+				}
+				allPats = append(allPats, pats...)
+			}
+			return nil
+		})
+
+		if err != nil {
+			log.Printf("Error reading from filesystem, falling back to embedded patterns: %v", err)
+		} else if len(allPats) > 0 {
+			return allPats, nil
+		}
+	}
+
+	// Fall back to embedded patterns if filesystem reading failed or returned no patterns
+	log.Printf("Using embedded regex patterns as fallback")
+	embeddedPats, err := ReadPatternsFromEmbeddedFS()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read embedded patterns: %v", err)
+	}
+
+	return embeddedPats, nil
 }
 
 func ParseDirectPatterns(patternsStr string) ([]patterns.Pattern, error) {
