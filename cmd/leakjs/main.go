@@ -28,6 +28,10 @@ func main() {
 		patterns    string
 		regex       string
 		file        string
+		all         string
+		config      string
+		exclude     string
+		benchmark   int
 		concurrency int
 		output      string
 		verbose     bool
@@ -47,7 +51,7 @@ func main() {
 			}
 
 			scanStats := &scanner.ScanStats{}
-			err := scanner.RunLeakJS(list, url, patterns, regex, file, output, concurrency, verbose, silent, json, stats, scanStats)
+			err := scanner.RunLeakJS(list, url, patterns, regex, file, all, config, exclude, output, concurrency, verbose, silent, json, stats, benchmark, scanStats)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -59,7 +63,11 @@ func main() {
 	rootCmd.Flags().StringVarP(&patterns, "patterns", "p", "", "Path to the YAML file containing patterns")
 	rootCmd.Flags().StringVarP(&regex, "regex", "r", "", "Directly input regex patterns separated by ';'")
 	rootCmd.Flags().StringVarP(&file, "file", "f", "", "Path to a JavaScript file to scan")
-	rootCmd.Flags().IntVarP(&concurrency, "concurrency", "c", 1, "Number of concurrent requests")
+	rootCmd.Flags().StringVarP(&all, "all", "a", "", "Path to directory containing all regex YAML files to load")
+	rootCmd.Flags().StringVarP(&config, "config", "c", "", "Path to configuration YAML file")
+	rootCmd.Flags().StringVarP(&exclude, "exclude", "e", "", "Comma-separated list of pattern names to exclude")
+	rootCmd.Flags().IntVarP(&benchmark, "benchmark", "b", 0, "Run benchmark with specified number of iterations")
+	rootCmd.Flags().IntVarP(&concurrency, "concurrency", "C", 1, "Number of concurrent requests")
 	rootCmd.Flags().StringVarP(&output, "output", "o", "", "Path to the output file to save results")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose logging")
 	rootCmd.Flags().BoolVarP(&silent, "silent", "s", false, "Show progress bar without any output in the terminal")

@@ -3,7 +3,38 @@ package patterns
 import (
 	"log"
 	"regexp"
+	"sync"
 )
+
+var (
+	patternCache = make(map[string]*regexp.Regexp)
+	cacheMutex   sync.RWMutex
+)
+
+func GetCompiledPattern(regex string) (*regexp.Regexp, error) {
+	cacheMutex.RLock()
+	if re, exists := patternCache[regex]; exists {
+		cacheMutex.RUnlock()
+		return re, nil
+	}
+	cacheMutex.RUnlock()
+
+	cacheMutex.Lock()
+	defer cacheMutex.Unlock()
+
+	// Double-check in case another goroutine compiled it
+	if re, exists := patternCache[regex]; exists {
+		return re, nil
+	}
+
+	re, err := regexp.Compile(regex)
+	if err != nil {
+		return nil, err
+	}
+
+	patternCache[regex] = re
+	return re, nil
+}
 
 type Pattern struct {
 	Name       string         `yaml:"name"`
@@ -64,7 +95,7 @@ func GetBuiltInPatterns() []Pattern {
 
 	var patterns []Pattern
 	for _, p := range builtInPatterns {
-		re, err := regexp.Compile(p.regex)
+		re, err := GetCompiledPattern(p.regex)
 		if err != nil {
 			log.Printf("Error compiling built-in pattern %s: %v", p.name, err)
 			continue
