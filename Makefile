@@ -1,7 +1,7 @@
 .PHONY: build install clean
 
 build:
-	go build -o leakjs main.go
+	go build -o leakjs ./cmd/leakjs
 
 install: build
 	sudo mv leakjs /usr/local/bin/

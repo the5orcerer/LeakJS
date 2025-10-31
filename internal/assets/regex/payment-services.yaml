@@ -1,0 +1,77 @@
+patterns:
+  - pattern:
+      name: "Stripe Secret Key"
+      regex: "sk_live_[0-9a-zA-Z]{24}"
+      confidence: "High"
+  - pattern:
+      name: "Stripe Publishable Key"
+      regex: "pk_live_[0-9a-zA-Z]{24}"
+      confidence: "High"
+  - pattern:
+      name: "Stripe Test Secret Key"
+      regex: "sk_test_[0-9a-zA-Z]{24}"
+      confidence: "Medium"
+  - pattern:
+      name: "Stripe Test Publishable Key"
+      regex: "pk_test_[0-9a-zA-Z]{24}"
+      confidence: "Medium"
+  - pattern:
+      name: "Stripe Restricted Key"
+      regex: "rk_live_[0-9a-zA-Z]{24}"
+      confidence: "High"
+  - pattern:
+      name: "Stripe Webhook Secret"
+      regex: "whsec_[0-9a-zA-Z]{24}"
+      confidence: "High"
+  - pattern:
+      name: "PayPal Client ID"
+      regex: "A[0-9a-zA-Z-_]{71}"
+      confidence: "High"
+  - pattern:
+      name: "PayPal Client Secret"
+      regex: "E[0-9a-zA-Z-_]{71}"
+      confidence: "High"
+  - pattern:
+      name: "Braintree Access Token"
+      regex: "access_token\\$production\\$[0-9a-zA-Z]{16}\\$[0-9a-f]{32}"
+      confidence: "High"
+  - pattern:
+      name: "Braintree Environment"
+      regex: "braintree_environment\\$[a-zA-Z]+\\$[0-9a-zA-Z]{16}"
+      confidence: "High"
+  - pattern:
+      name: "Square Access Token"
+      regex: "sq0atp-[0-9A-Za-z-_]{22}"
+      confidence: "High"
+  - pattern:
+      name: "Square Application Secret"
+      regex: "sq0csp-[0-9A-Za-z-_]{43}"
+      confidence: "High"
+  - pattern:
+      name: "Adyen API Key"
+      regex: "AQE[0-9a-zA-Z]{47}AA[0-9a-zA-Z]{9}"
+      confidence: "High"
+  - pattern:
+      name: "Authorize.Net API Login ID"
+      regex: "[0-9a-zA-Z]{10,20}"
+      confidence: "Medium"
+  - pattern:
+      name: "Authorize.Net Transaction Key"
+      regex: "[0-9a-zA-Z]{16}"
+      confidence: "Medium"
+  - pattern:
+      name: "2Checkout Private Key"
+      regex: "[0-9a-zA-Z]{32}"
+      confidence: "Medium"
+  - pattern:
+      name: "Checkout.com Secret Key"
+      regex: "sk_[0-9a-zA-Z]{26}"
+      confidence: "High"
+  - pattern:
+      name: "Coinbase Commerce API Key"
+      regex: "[0-9a-zA-Z]{32}"
+      confidence: "Medium"
+  - pattern:
+      name: "OpenNode API Key"
+      regex: "[0-9a-zA-Z]{64}"
+      confidence: "Medium"

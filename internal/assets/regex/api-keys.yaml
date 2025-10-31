@@ -1,0 +1,209 @@
+patterns:
+  - pattern:
+      name: "Algolia API Key"
+      regex: "[0-9a-zA-Z]{32}"
+      confidence: "Medium"
+  - pattern:
+      name: "Airtable API Key"
+      regex: "pat[0-9A-Za-z]{14}\\.[0-9A-Za-z]{14}\\.[0-9A-Za-z]{14}"
+      confidence: "High"
+  - pattern:
+      name: "Asana Access Token"
+      regex: "[0-9]/[0-9]{13}:[a-zA-Z0-9]{32}"
+      confidence: "High"
+  - pattern:
+      name: "Bitly Access Token"
+      regex: "[0-9a-zA-Z]{40}"
+      confidence: "Medium"
+  - pattern:
+      name: "Box API Token"
+      regex: "[0-9a-zA-Z]{32}"
+      confidence: "Medium"
+  - pattern:
+      name: "Buffer Access Token"
+      regex: "[0-9a-zA-Z]{40}"
+      confidence: "Medium"
+  - pattern:
+      name: "CircleCI Token"
+      regex: "[0-9a-zA-Z]{40}"
+      confidence: "Medium"
+  - pattern:
+      name: "Contentful Access Token"
+      regex: "[0-9a-zA-Z_-]{43}"
+      confidence: "Medium"
+  - pattern:
+      name: "Datadog API Key"
+      regex: "[0-9a-zA-Z]{32}"
+      confidence: "Medium"
+  - pattern:
+      name: "DigitalOcean Personal Access Token"
+      regex: "dop_v1_[0-9a-f]{64}"
+      confidence: "High"
+  - pattern:
+      name: "Dropbox Access Token"
+      regex: "[0-9a-zA-Z_-]{64}"
+      confidence: "Medium"
+  - pattern:
+      name: "Flickr API Key"
+      regex: "[0-9a-f]{32}"
+      confidence: "Medium"
+  - pattern:
+      name: "Foursquare Client Secret"
+      regex: "[0-9a-zA-Z]{48}"
+      confidence: "Medium"
+  - pattern:
+      name: "GitHub App Installation Token"
+      regex: "ghs_[0-9a-zA-Z]{36}"
+      confidence: "High"
+  - pattern:
+      name: "GitHub Refresh Token"
+      regex: "ghr_[0-9a-zA-Z]{36}"
+      confidence: "High"
+  - pattern:
+      name: "GitLab Deploy Token"
+      regex: "gldt-[0-9a-zA-Z_-]{20,40}"
+      confidence: "High"
+  - pattern:
+      name: "Google Maps API Key"
+      regex: "AIza[0-9A-Za-z-_]{35}"
+      confidence: "High"
+  - pattern:
+      name: "Heroku OAuth Token"
+      regex: "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+      confidence: "Medium"
+  - pattern:
+      name: "HubSpot API Key"
+      regex: "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+      confidence: "Medium"
+  - pattern:
+      name: "Imgur Client ID"
+      regex: "[0-9a-zA-Z]{7}"
+      confidence: "Medium"
+  - pattern:
+      name: "Intercom Access Token"
+      regex: "dG9r_[0-9a-zA-Z_-]{59}"
+      confidence: "High"
+  - pattern:
+      name: "Jira API Token"
+      regex: "[0-9a-zA-Z]{24}"
+      confidence: "Medium"
+  - pattern:
+      name: "Last.fm API Key"
+      regex: "[0-9a-f]{32}"
+      confidence: "Medium"
+  - pattern:
+      name: "Mailchimp API Key"
+      regex: "[0-9a-zA-Z]{32}-us[0-9]{1,2}"
+      confidence: "High"
+  - pattern:
+      name: "Mapbox Access Token"
+      regex: "pk\\.[0-9a-zA-Z_\\.]{80,}"
+      confidence: "High"
+  - pattern:
+      name: "New Relic License Key"
+      regex: "[0-9a-zA-Z]{40}"
+      confidence: "Medium"
+  - pattern:
+      name: "Notion Integration Token"
+      regex: "secret_[0-9A-Za-z]{43}"
+      confidence: "High"
+  - pattern:
+      name: "OpenAI API Key"
+      regex: "sk-[0-9a-zA-Z]{48}"
+      confidence: "High"
+  - pattern:
+      name: "OpenAI Organization ID"
+      regex: "org-[0-9a-zA-Z]{24}"
+      confidence: "Medium"
+  - pattern:
+      name: "PagerDuty Integration Key"
+      regex: "[0-9a-zA-Z]{32}"
+      confidence: "Medium"
+  - pattern:
+      name: "Pivotal Tracker API Token"
+      regex: "[0-9a-f]{40}"
+      confidence: "Medium"
+  - pattern:
+      name: "Pusher App Key"
+      regex: "[0-9a-zA-Z]{20}"
+      confidence: "Medium"
+  - pattern:
+      name: "Reddit Client Secret"
+      regex: "[0-9a-zA-Z_-]{27}"
+      confidence: "Medium"
+  - pattern:
+      name: "Rollbar Access Token"
+      regex: "[0-9a-f]{32}"
+      confidence: "Medium"
+  - pattern:
+      name: "Sentry DSN"
+      regex: "https://[0-9a-f]{32}@[a-zA-Z0-9.-]+/[0-9]+"
+      confidence: "High"
+  - pattern:
+      name: "Shopify Access Token"
+      regex: "shpat_[0-9a-f]{32}"
+      confidence: "High"
+  - pattern:
+      name: "Shopify Shared Secret"
+      regex: "shpss_[0-9a-f]{32}"
+      confidence: "High"
+  - pattern:
+      name: "Slack Legacy Token"
+      regex: "xoxp-[0-9a-zA-Z-]{10,48}"
+      confidence: "High"
+  - pattern:
+      name: "SoundCloud Client Secret"
+      regex: "[0-9a-zA-Z]{32}"
+      confidence: "Medium"
+  - pattern:
+      name: "Spotify Client Secret"
+      regex: "[0-9a-zA-Z_-]{32}"
+      confidence: "Medium"
+  - pattern:
+      name: "Stripe Connect Client ID"
+      regex: "ca_[0-9a-zA-Z]{24}"
+      confidence: "High"
+  - pattern:
+      name: "Trello API Key"
+      regex: "[0-9a-f]{32}"
+      confidence: "Medium"
+  - pattern:
+      name: "Travis CI API Token"
+      regex: "[0-9a-zA-Z]{22}"
+      confidence: "Medium"
+  - pattern:
+      name: "Twitch Client Secret"
+      regex: "[0-9a-zA-Z_-]{30}"
+      confidence: "Medium"
+  - pattern:
+      name: "Typeform Personal Access Token"
+      regex: "tfp_[0-9a-zA-Z_-]{59}_[0-9a-zA-Z_-]{8}"
+      confidence: "High"
+  - pattern:
+      name: "Unsplash Access Key"
+      regex: "[0-9a-zA-Z_-]{43}"
+      confidence: "Medium"
+  - pattern:
+      name: "Vimeo Access Token"
+      regex: "[0-9a-f]{32}"
+      confidence: "Medium"
+  - pattern:
+      name: "Webflow API Token"
+      regex: "[0-9a-f]{40}"
+      confidence: "Medium"
+  - pattern:
+      name: "WordPress.com OAuth2 Client Secret"
+      regex: "[0-9a-zA-Z]{40}"
+      confidence: "Medium"
+  - pattern:
+      name: "YouTube Data API Key"
+      regex: "AIza[0-9A-Za-z-_]{35}"
+      confidence: "High"
+  - pattern:
+      name: "Zendesk API Token"
+      regex: "[0-9a-zA-Z_-]{40}"
+      confidence: "Medium"
+  - pattern:
+      name: "Zoom Client Secret"
+      regex: "[0-9a-zA-Z_-]{32}"
+      confidence: "Medium"

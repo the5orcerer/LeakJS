@@ -39,6 +39,7 @@ func main() {
 		json        bool
 		stats       bool
 		help        bool
+		highOnly    bool
 	)
 
 	rootCmd := &cobra.Command{
@@ -51,7 +52,7 @@ func main() {
 			}
 
 			scanStats := &scanner.ScanStats{}
-			err := scanner.RunLeakJS(list, url, patterns, regex, file, all, config, exclude, output, concurrency, verbose, silent, json, stats, benchmark, scanStats)
+			err := scanner.RunLeakJS(list, url, patterns, regex, file, all, config, exclude, output, concurrency, verbose, silent, json, stats, benchmark, highOnly, scanStats)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -67,12 +68,13 @@ func main() {
 	rootCmd.Flags().StringVarP(&config, "config", "c", "", "Path to configuration YAML file")
 	rootCmd.Flags().StringVarP(&exclude, "exclude", "e", "", "Comma-separated list of pattern names to exclude")
 	rootCmd.Flags().IntVarP(&benchmark, "benchmark", "b", 0, "Run benchmark with specified number of iterations")
-	rootCmd.Flags().IntVarP(&concurrency, "concurrency", "C", 1, "Number of concurrent requests")
+	rootCmd.Flags().IntVarP(&concurrency, "concurrency", "C", 20, "Number of concurrent requests")
 	rootCmd.Flags().StringVarP(&output, "output", "o", "", "Path to the output file to save results")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose logging")
 	rootCmd.Flags().BoolVarP(&silent, "silent", "s", false, "Show progress bar without any output in the terminal")
 	rootCmd.Flags().BoolVarP(&json, "json", "j", false, "Output results in JSON format")
 	rootCmd.Flags().BoolVarP(&stats, "stats", "t", false, "Show scan statistics at the end")
+	rootCmd.Flags().BoolVarP(&highOnly, "high-only", "H", false, "Show only high-confidence matches")
 	rootCmd.Flags().BoolVar(&help, "help", false, "Show help message and exit")
 
 	if err := rootCmd.Execute(); err != nil {
