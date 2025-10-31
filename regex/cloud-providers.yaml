@@ -1,0 +1,89 @@
+patterns:
+  - pattern:
+      name: "AWS Access Key ID"
+      regex: "AKIA[0-9A-Z]{16}"
+      confidence: "High"
+  - pattern:
+      name: "AWS Secret Access Key"
+      regex: "[0-9a-zA-Z/+]{40}"
+      confidence: "Medium"
+  - pattern:
+      name: "AWS Session Token"
+      regex: "[0-9a-zA-Z/+]{260,2048}"
+      confidence: "Medium"
+  - pattern:
+      name: "AWS Account ID"
+      regex: "\\b\\d{12}\\b"
+      confidence: "Low"
+  - pattern:
+      name: "Google API Key"
+      regex: "AIza[0-9A-Za-z-_]{35}"
+      confidence: "High"
+  - pattern:
+      name: "Google OAuth Client ID"
+      regex: "[0-9]+-[0-9A-Za-z_]{32}\\.apps\\.googleusercontent\\.com"
+      confidence: "High"
+  - pattern:
+      name: "Google OAuth Client Secret"
+      regex: "GOCSPX-[0-9A-Za-z_-]{32}"
+      confidence: "High"
+  - pattern:
+      name: "Google Service Account Key"
+      regex: '"type": "service_account"'
+      confidence: "Medium"
+  - pattern:
+      name: "Azure Client ID"
+      regex: "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+      confidence: "Medium"
+  - pattern:
+      name: "Azure Client Secret"
+      regex: "[0-9a-zA-Z-_\\.]{16,}"
+      confidence: "Medium"
+  - pattern:
+      name: "Azure Subscription ID"
+      regex: "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+      confidence: "Medium"
+  - pattern:
+      name: "Azure Tenant ID"
+      regex: "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+      confidence: "Medium"
+  - pattern:
+      name: "Azure Storage Account Key"
+      regex: "[0-9a-zA-Z/+]{88}={0,2}"
+      confidence: "High"
+  - pattern:
+      name: "DigitalOcean Access Token"
+      regex: "doo_v1_[0-9a-f]{64}"
+      confidence: "High"
+  - pattern:
+      name: "DigitalOcean Spaces Access Key"
+      regex: "DO00[0-9A-Z]{16}"
+      confidence: "High"
+  - pattern:
+      name: "Linode Personal Access Token"
+      regex: "[0-9a-f]{64}"
+      confidence: "Medium"
+  - pattern:
+      name: "Vultr API Key"
+      regex: "[0-9A-Z]{36}"
+      confidence: "Medium"
+  - pattern:
+      name: "Heroku API Key"
+      regex: "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+      confidence: "Medium"
+  - pattern:
+      name: "Cloudflare API Token"
+      regex: "[0-9a-f]{40}"
+      confidence: "Medium"
+  - pattern:
+      name: "Cloudflare API Key"
+      regex: "[0-9a-f]{37}"
+      confidence: "Medium"
+  - pattern:
+      name: "Firebase API Key"
+      regex: "AAAA[0-9A-Za-z_-]{7}:APA[0-9A-Za-z_-]{178}"
+      confidence: "High"
+  - pattern:
+      name: "Firebase Service Account"
+      regex: '"type": "service_account"'
+      confidence: "Medium"
