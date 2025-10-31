@@ -1,17 +1,18 @@
 
 # LeakJS
 
-![Python](https://img.shields.io/badge/python-3.6%2B-blue) ![Issues](https://img.shields.io/github/issues/the5orcerer/LeakJS) ![Forks](https://img.shields.io/github/forks/the5orcerer/LeakJS) ![Stars](https://img.shields.io/github/stars/the5orcerer/LeakJS) ![License](https://img.shields.io/github/license/the5orcerer/LeakJS)
+![Go](https://img.shields.io/badge/go-1.18%2B-blue) ![Issues](https://img.shields.io/github/issues/the5orcerer/LeakJS) ![Forks](https://img.shields.io/github/forks/the5orcerer/LeakJS) ![Stars](https://img.shields.io/github/stars/the5orcerer/LeakJS) ![License](https://img.shields.io/github/license/the5orcerer/LeakJS)
 
 ## Getting Started
 
-**LeakJS** is a robust tool designed to scan JavaScript files and URLs for predefined patterns, aiding in the identification of potential leaks and vulnerabilities. Leveraging `asyncio` and `aiohttp`, it ensures fast and efficient scanning. Users can define custom patterns in YAML files for tailored scans. Detailed logging and comprehensive configuration options make LeakJS a versatile solution for securing JavaScript code.
+**LeakJS** is a robust tool designed to scan JavaScript files and URLs for predefined patterns, aiding in the identification of potential leaks and vulnerabilities. Leveraging Go's goroutines, it ensures fast and efficient scanning. Users can define custom patterns in YAML files for tailored scans. Detailed logging and comprehensive configuration options make LeakJS a versatile solution for securing JavaScript code.
 
 ## 🚀 Key Features
 
-- **Asynchronous Scanning**: Fast and efficient scanning using `asyncio` and `aiohttp`.
+- **Concurrent Scanning**: Fast and efficient scanning using Go goroutines.
 - **Custom Patterns**: Define your own patterns in YAML files.
-- **Concurrent Execution**: Utilize multiple threads for concurrent scanning.
+- **High Performance**: Pre-compiled regexes and optimized concurrency.
+- **Multiple Output Formats**: Text and JSON output options.
 - **Detailed Logging**: Comprehensive logging for debugging and analysis.
 - **Configurable**: Easily configure headers, patterns, and more.
 ## 📥 Installation
@@ -21,8 +22,16 @@ To install LeakJS, follow these steps:
 ```bash
 git clone https://github.com/the5orcerer/LeakJS
 cd LeakJS
-python3 install.py
+make build
+sudo make install
 leakjs -h (For testing purpose)
+```
+
+Or using Go directly:
+
+```bash
+go build -o leakjs main.go
+sudo mv leakjs /usr/local/bin/
 ```
 
 ## 🛠️ Usage
@@ -35,12 +44,56 @@ LeakJS can be used as a command-line tool to scan JavaScript files and URLs for 
 leakjs -u "https://example.com/script.js" -p patterns.yaml -c 5 -o results.txt
 
 [ INF ] Current version v1.2.4 [updated]
-[ INF ] Templates Loaded: 6
+[ INF ] Templates loaded: 6
 
-[ SUCC ] https://example.com/index.js
-Regex Name: Stripe Secret Token
+[ SUCC ] https://example.com/index.js (URL)
+
+Regex name: Stripe Secret Token
 let google_map_api = "stripe:7b1a32f7h8377c0a"
 Confidence: Critical
+```
+
+### Scan Multiple URLs from a File
+
+```bash
+leakjs -l urls.txt -p patterns.yaml -c 5 -o results.txt
+
+[ INF ] Current version v1.2.4 [updated]
+[ INF ] Templates loaded: 15
+
+[ SUCC ] https://example.com/index.js (URL)
+
+Regex name: Google Map API Key
+let google_map_api = "Aizashgkhheuuii746hg9875487hgjg"
+Confidence: Unknown
+```
+
+### Scan a Local JavaScript File
+
+```bash
+leakjs -f script.js -p patterns.yaml -c 5 -o results.txt
+
+[ INF ] Current version v1.2.4 [updated]
+[ INF ] Templates loaded: 34
+
+[ SUCC ] script.js (File)
+
+Regex name: Email Addresses
+subscriber:"johndoe@gmail.com"
+Confidence: Low
+```
+
+### Output in JSON Format
+
+```bash
+leakjs -u "https://example.com/script.js" -j
+
+{
+  "Stripe Secret Token": {
+    "matches": ["stripe:7b1a32f7h8377c0a"],
+    "confidence": "Critical"
+  }
+}
 ```
 
 ### Scan Multiple URLs from a File
@@ -116,20 +169,20 @@ leakjs -h
       -p, --patterns    Path to the YAML file containing patterns (optional)
       -r, --regex       Directly input regex patterns separated by ";"
       -f, --file        Path to a JavaScript file to scan
-      -c, --concurrency Number of concurrent threads (default: 1)
+      -c, --concurrency Number of concurrent requests (default: 1)
       -o, --output      Path to the output file to save results
       -v, --verbose     Enable verbose logging
       -s, --silent      Show progress bar without any output in the terminal
-      -t, --threads     Number of threads to use
-      -up, --update     Update the tool automatically
-      -upt, --updatetemplates Update the templates
-      -h, --help        Show this help message and exit
+      -j, --json        Output results in JSON format
+      --update          Update the tool automatically
+      --updatetemplates Update the templates
+      -h, --help        Show help message and exit
 
     Examples:
       leakjs -u http://example.com/app.js
       leakjs -l urls.txt -p patterns.yaml
       leakjs -r "regex1;regex2" -f app.js -c 5
-      leakjs -up
+      leakjs --update
 ```
 
 ## ⚙️ Configuration
@@ -175,6 +228,6 @@ For any questions or suggestions, feel free to open an issue or contact us direc
 ---
 
 <p align="center">
-  <img src="https://forthebadge.com/images/badges/made-with-python.svg">
+  <img src="https://forthebadge.com/images/badges/made-with-go.svg">
   <img src="https://forthebadge.com/images/badges/built-with-love.svg">
 </p>
