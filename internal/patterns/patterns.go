@@ -51,7 +51,7 @@ type Config struct {
 	Patterns []PatternConfig `yaml:"patterns"`
 }
 
-func GetBuiltInPatterns() []Pattern {
+func GetBuiltInPatterns(verbose bool) []Pattern {
 	builtInPatterns := []struct {
 		name       string
 		regex      string
@@ -80,24 +80,23 @@ func GetBuiltInPatterns() []Pattern {
 		{"Mailgun API Key", `key-[0-9a-zA-Z]{32}`, "High"},
 		{"Firebase API Key", `AAAA[0-9A-Za-z_-]{7}:APA[0-9A-Za-z_-]{178}`, "High"},
 		{"JWT Token", `eyJ[A-Za-z0-9-_=]+\.eyJ[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*`, "Medium"},
-		{"Generic API Key", `api[_-]?key[_-]?[=:]\s*["']?([a-zA-Z0-9_-]{20,})["']?`, "Low"},
-		{"Generic Secret", `secret[_-]?[=:]\s*["']?([a-zA-Z0-9_-]{20,})["']?`, "Low"},
+		{"Generic API Key", `(?i)(api[_-]?key|apikey)\s*[=:]\s*["']?([a-zA-Z0-9_-]{32,})["']?`, "Low"},
+		{"Generic Secret", `(?i)(secret|password|token)\s*[=:]\s*["']?([a-zA-Z0-9_-]{32,})["']?`, "Low"},
 		{"Private Key", `-----BEGIN [A-Z ]*PRIVATE KEY-----`, "High"},
 		{"SSH Private Key", `-----BEGIN OPENSSH PRIVATE KEY-----`, "High"},
 		{"Database Connection String", `(mongodb|mysql|postgresql)://[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+@[a-zA-Z0-9.-]+:[0-9]+/[a-zA-Z0-9_-]+`, "High"},
-		{"Email Address", `[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`, "Low"},
-		{"Phone Number", `\+?[1-9]\d{1,14}`, "Low"},
 		{"Credit Card Number", `\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b`, "High"},
 		{"Social Security Number", `\b\d{3}-\d{2}-\d{4}\b`, "High"},
-		{"IP Address", `\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b`, "Low"},
-		{"Base64 Encoded", `[A-Za-z0-9+/]{20,}={0,2}`, "Low"},
+		{"Base64 Encoded", `\b[A-Za-z0-9+/]{40,}={0,2}\b`, "Low"},
 	}
 
 	var patterns []Pattern
 	for _, p := range builtInPatterns {
 		re, err := GetCompiledPattern(p.regex)
 		if err != nil {
-			log.Printf("Error compiling built-in pattern %s: %v", p.name, err)
+			if verbose {
+				log.Printf("Error compiling built-in pattern %s: %v", p.name, err)
+			}
 			continue
 		}
 		patterns = append(patterns, Pattern{

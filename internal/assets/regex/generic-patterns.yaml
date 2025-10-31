@@ -1,0 +1,117 @@
+patterns:
+  - pattern:
+      name: "Generic API Key"
+      regex: "\\b[a-zA-Z0-9_-]{20,}\\b"
+      confidence: "Low"
+  - pattern:
+      name: "Generic Secret"
+      regex: "[Ss]ecret[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{20,})"
+      confidence: "Low"
+  - pattern:
+      name: "Generic Token"
+      regex: "[Tt]oken[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{20,})"
+      confidence: "Low"
+  - pattern:
+      name: "Generic Key"
+      regex: "[Kk]ey[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{20,})"
+      confidence: "Low"
+  - pattern:
+      name: "Environment Variable"
+      regex: "[A-Z_]{3,}[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{8,})"
+      confidence: "Low"
+  - pattern:
+      name: "Configuration Value"
+      regex: "[Cc]onfig[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{8,})"
+      confidence: "Low"
+  - pattern:
+      name: "Database Password"
+      regex: "[Dd][Bb][_-]?[Pp]assword[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{8,})"
+      confidence: "Medium"
+  - pattern:
+      name: "Database User"
+      regex: "[Dd][Bb][_-]?[Uu]ser[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{3,})"
+      confidence: "Low"
+  - pattern:
+      name: "Redis Password"
+      regex: "[Rr]edis[_-]?[Pp]assword[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{8,})"
+      confidence: "Medium"
+  - pattern:
+      name: "Memcached Password"
+      regex: "[Mm]emcached[_-]?[Pp]assword[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{8,})"
+      confidence: "Medium"
+  - pattern:
+      name: "RabbitMQ Password"
+      regex: "[Rr]abbitmq[_-]?[Pp]assword[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{8,})"
+      confidence: "Medium"
+  - pattern:
+      name: "SMTP Password"
+      regex: "[Ss]mtp[_-]?[Pp]assword[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{8,})"
+      confidence: "Medium"
+  - pattern:
+      name: "FTP Password"
+      regex: "[Ff]tp[_-]?[Pp]assword[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{8,})"
+      confidence: "Medium"
+  - pattern:
+      name: "SSH Password"
+      regex: "[Ss]sh[_-]?[Pp]assword[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{8,})"
+      confidence: "Medium"
+  - pattern:
+      name: "Admin Password"
+      regex: "[Aa]dmin[_-]?[Pp]assword[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{8,})"
+      confidence: "Medium"
+  - pattern:
+      name: "Root Password"
+      regex: "[Rr]oot[_-]?[Pp]assword[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{8,})"
+      confidence: "Medium"
+  - pattern:
+      name: "Service Account Key"
+      regex: "[Ss]ervice[_-]?[Aa]ccount[_-]?[Kk]ey[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{20,})"
+      confidence: "Medium"
+  - pattern:
+      name: "Webhook Secret"
+      regex: "[Ww]ebhook[_-]?[Ss]ecret[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{20,})"
+      confidence: "Medium"
+  - pattern:
+      name: "Signing Secret"
+      regex: "[Ss]igning[_-]?[Ss]ecret[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{20,})"
+      confidence: "Medium"
+  - pattern:
+      name: "Verification Token"
+      regex: "[Vv]erification[_-]?[Tt]oken[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{20,})"
+      confidence: "Medium"
+  - pattern:
+      name: "Access Code"
+      regex: "[Aa]ccess[_-]?[Cc]ode[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{8,})"
+      confidence: "Low"
+  - pattern:
+      name: "Authorization Code"
+      regex: "[Aa]uthorization[_-]?[Cc]ode[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{8,})"
+      confidence: "Low"
+  - pattern:
+      name: "Client Credentials"
+      regex: "[Cc]lient[_-]?[Cc]redentials[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{20,})"
+      confidence: "Medium"
+  - pattern:
+      name: "OAuth Credentials"
+      regex: "[Oo]auth[_-]?[Cc]redentials[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{20,})"
+      confidence: "Medium"
+  - pattern:
+      name: "Application Secret"
+      regex: "[Aa]pp[_-]?[Ss]ecret[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{20,})"
+      confidence: "Medium"
+  - pattern:
+      name: "Private Key Content"
+      regex: "[Pp]rivate[_-]?[Kk]ey[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{20,})"
+      confidence: "Medium"
+  - pattern:
+      name: "Certificate Content"
+      regex: "[Cc]ertificate[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{20,})"
+      confidence: "Medium"
+  - pattern:
+      name: "SSL Key"
+      regex: "[Ss]sl[_-]?[Kk]ey[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{20,})"
+      confidence: "Medium"
+  - pattern:
+      name: "TLS Certificate"
+      regex: "[Tt]ls[_-]?[Cc]ertificate[_-]?[=:][\"'\\s]*([a-zA-Z0-9_\\-\\./+=]{20,})"
+      confidence: "Medium"

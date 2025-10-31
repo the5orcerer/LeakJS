@@ -1,0 +1,306 @@
+patterns:
+  # Mobile and Hybrid App Patterns
+
+  # React Native specific patterns
+
+  # React Native Environment Variables
+  - pattern:
+      name: "React Native Config"
+      regex: "Config\\.[A-Z_][A-Z0-9_]*"
+      confidence: "Medium"
+  - pattern:
+      name: "React Native AsyncStorage with Sensitive Data"
+      regex: "AsyncStorage\\.(?:setItem|getItem)\\(['\"](?:token|apiKey|userId)"
+      confidence: "Medium"
+
+  # React Native Keychain
+  - pattern:
+      name: "React Native Keychain Set"
+      regex: "Keychain\\.setGenericPassword\\([^)]*(?:token|apiKey|password)"
+      confidence: "Medium"
+  - pattern:
+      name: "React Native Keychain Get"
+      regex: "Keychain\\.getGenericPassword\\([^)]*(?:token|apiKey)"
+      confidence: "Medium"
+
+  # React Native Secure Storage
+  - pattern:
+      name: "RN Secure Storage Set"
+      regex: "SecureStorage\\.setItem\\(['\"](?:token|apiKey|secret)"
+      confidence: "Medium"
+  - pattern:
+      name: "RN Secure Storage Get"
+      regex: "SecureStorage\\.getItem\\(['\"](?:token|apiKey|secret)"
+      confidence: "Medium"
+
+  # Cordova/PhoneGap specific patterns
+
+  # Cordova Preferences
+  - pattern:
+      name: "Cordova Config API Key"
+      regex: "<preference\\s+name=['\"](?:apiKey|token|secret)['\"]\\s+value=['\"]([^'\"]{20,})['\"]"
+      confidence: "Medium"
+
+  # Cordova Plugins
+  - pattern:
+      name: "Cordova Secure Storage"
+      regex: "cordova\\.plugins\\.SecureStorage"
+      confidence: "Low"
+  - pattern:
+      name: "Cordova File Plugin with Sensitive Data"
+      regex: "cordova\\.file\\..*write.*(?:token|apiKey|secret)"
+      confidence: "Medium"
+
+  # Ionic specific patterns
+
+  # Ionic Storage
+  - pattern:
+      name: "Ionic Storage Set"
+      regex: "Storage\\.set\\(['\"](?:token|apiKey|userData)"
+      confidence: "Medium"
+  - pattern:
+      name: "Ionic Storage Get"
+      regex: "Storage\\.get\\(['\"](?:token|apiKey|userData)"
+      confidence: "Medium"
+
+  # Ionic Native Secure Storage
+  - pattern:
+      name: "Ionic Native Secure Storage"
+      regex: "SecureStorage\\.set\\(['\"](?:token|apiKey|secret)"
+      confidence: "Medium"
+
+  # Capacitor specific patterns
+
+  # Capacitor Preferences
+  - pattern:
+      name: "Capacitor Preferences Set"
+      regex: "Preferences\\.set\\(['\"](?:token|apiKey|userId)"
+      confidence: "Medium"
+  - pattern:
+      name: "Capacitor Preferences Get"
+      regex: "Preferences\\.get\\(['\"](?:token|apiKey|userId)"
+      confidence: "Medium"
+
+  # Capacitor HTTP
+  - pattern:
+      name: "Capacitor HTTP with Auth"
+      regex: "CapacitorHttp\\..*\\{[^}]*Authorization"
+      confidence: "Medium"
+
+  # Mobile-specific API patterns
+
+  # Mobile Push Notification Keys
+  - pattern:
+      name: "FCM Server Key"
+      regex: "AAAA[0-9A-Za-z_-]{7}:APA[0-9A-Za-z_-]{178}"
+      confidence: "High"
+  - pattern:
+      name: "APNs Key ID"
+      regex: "[0-9A-Z]{10}"
+      confidence: "Medium"
+  - pattern:
+      name: "APNs Team ID"
+      regex: "[0-9A-Z]{10}"
+      confidence: "Medium"
+
+  # Mobile Analytics
+  - pattern:
+      name: "Firebase Analytics Config"
+      regex: "firebaseConfig.*measurementId"
+      confidence: "Medium"
+  - pattern:
+      name: "Google Analytics Tracking ID"
+      regex: "UA-\\d{8}-\\d{1}"
+      confidence: "Medium"
+  - pattern:
+      name: "Google Analytics 4 ID"
+      regex: "G-[A-Z0-9]{10}"
+      confidence: "Medium"
+
+  # Mobile Payment
+  - pattern:
+      name: "Apple Pay Merchant ID"
+      regex: "merchant\\.[a-zA-Z0-9.-]+"
+      confidence: "Medium"
+  - pattern:
+      name: "Google Pay Gateway"
+      regex: "gateway\\s*=\\s*['\"][a-zA-Z0-9.-]+['\"]"
+      confidence: "Medium"
+
+  # Mobile Database
+  - pattern:
+      name: "SQLite Database Path"
+      regex: "SQLite\\.openDatabase\\(['\"]([^'\"]*password|[^'\"]*secret)"
+      confidence: "Medium"
+  - pattern:
+      name: "Realm Database Encryption Key"
+      regex: "Realm\\.open\\([^}]*encryptionKey"
+      confidence: "Medium"
+
+  # Mobile Authentication
+  - pattern:
+      name: "OAuth Redirect URI Mobile"
+      regex: "(?:myapp|com\\.example\\.app)://oauth"
+      confidence: "Low"
+  - pattern:
+      name: "Mobile Biometric Auth"
+      regex: "LocalAuthentication\\.authenticateAsync"
+      confidence: "Low"
+
+  # App Store and Play Store
+  - pattern:
+      name: "App Store Connect API Key"
+      regex: "[0-9A-Z]{32}"
+      confidence: "Medium"
+  - pattern:
+      name: "Google Play Service Account"
+      regex: "[0-9]+-[a-z0-9]+@developer\\.gserviceaccount\\.com"
+      confidence: "High"
+
+  # Mobile-specific secrets
+
+  # Device-specific
+  - pattern:
+      name: "Device UUID in Code"
+      regex: "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+      confidence: "Low"
+  - pattern:
+      name: "Advertising ID"
+      regex: "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+      confidence: "Low"
+
+  # Mobile API endpoints
+  - pattern:
+      name: "Mobile API Base URL"
+      regex: "https://api\\.[a-zA-Z0-9.-]+/(?:v[0-9]+/)?mobile"
+      confidence: "Low"
+  - pattern:
+      name: "Development Mobile API"
+      regex: "https?://(?:localhost|10\\.0\\.2\\.2|192\\.168\\.[0-9]+\\.[0-9]+):[0-9]+"
+      confidence: "Low"
+
+  # Hybrid App Patterns
+
+  # WebView with sensitive data
+  - pattern:
+      name: "WebView Load with Token"
+      regex: "webView\\.loadUrl\\([^)]*token"
+      confidence: "Medium"
+  - pattern:
+      name: "WebView JavaScript Injection"
+      regex: "webView\\.evaluateJavascript\\([^)]*token"
+      confidence: "Medium"
+
+  # Cross-platform frameworks
+
+  # Flutter (Dart/JS interop)
+  - pattern:
+      name: "Flutter JS Channel with Secrets"
+      regex: "JavascriptChannel\\([^)]*token|apiKey"
+      confidence: "Medium"
+
+  # Xamarin Forms
+  - pattern:
+      name: "Xamarin Secure Storage"
+      regex: "SecureStorage\\.SetAsync\\(['\"](?:token|apiKey)"
+      confidence: "Medium"
+
+  # Mobile CI/CD
+  - pattern:
+      name: "Fastlane API Key"
+      regex: "api_key\\s*['\"]([a-zA-Z0-9_-]{20,})['\"]"
+      confidence: "Medium"
+  - pattern:
+      name: "App Center Secret"
+      regex: "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+      confidence: "Medium"
+
+  # Mobile Testing
+  - pattern:
+      name: "Appium Server URL"
+      regex: "http://(?:localhost|127\\.0\\.0\\.1):4723"
+      confidence: "Low"
+  - pattern:
+      name: "TestFlight Beta Token"
+      regex: "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+      confidence: "Medium"
+
+  # Mobile-specific configurations
+
+  # App Configuration
+  - pattern:
+      name: "App Bundle ID"
+      regex: "com\\.[a-zA-Z0-9.-]+\\.[a-zA-Z0-9.-]+"
+      confidence: "Low"
+  - pattern:
+      name: "Android Package Name"
+      regex: "[a-z][a-zA-Z0-9_]*(\\.[a-z][a-zA-Z0-9_]*)+"
+      confidence: "Low"
+
+  # Mobile certificates
+  - pattern:
+      name: "iOS Provisioning Profile"
+      regex: "embedded\\.mobileprovision"
+      confidence: "Low"
+  - pattern:
+      name: "Android Keystore Password"
+      regex: "keyPassword\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]"
+      confidence: "High"
+
+  # Push notification certificates
+  - pattern:
+      name: "APNs Certificate Password"
+      regex: "apns[_-]?password\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]"
+      confidence: "High"
+  - pattern:
+      name: "FCM Legacy Server Key"
+      regex: "AIza[0-9A-Za-z-_]{35}"
+      confidence: "High"
+
+  # In-app purchase
+  - pattern:
+      name: "Apple Shared Secret"
+      regex: "[0-9a-f]{32}"
+      confidence: "Medium"
+  - pattern:
+      name: "Google Play Billing Key"
+      regex: "[A-Za-z0-9_-]{100,}"
+      confidence: "Medium"
+
+  # Mobile analytics extended
+  - pattern:
+      name: "Amplitude API Key"
+      regex: "[0-9a-f]{32}"
+      confidence: "Medium"
+  - pattern:
+      name: "Mixpanel Token"
+      regex: "[a-f0-9]{32}"
+      confidence: "Medium"
+  - pattern:
+      name: "Flurry API Key"
+      regex: "[A-Z0-9]{40}"
+      confidence: "Medium"
+
+  # Mobile crash reporting
+  - pattern:
+      name: "Crashlytics API Key"
+      regex: "[0-9a-f]{40}"
+      confidence: "Medium"
+  - pattern:
+      name: "HockeyApp App ID"
+      regex: "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+      confidence: "Medium"
+
+  # Mobile authentication extended
+  - pattern:
+      name: "Auth0 Client ID"
+      regex: "[a-zA-Z0-9_-]{32}"
+      confidence: "Medium"
+  - pattern:
+      name: "Firebase Auth API Key"
+      regex: "AAAA[0-9A-Za-z_-]{7}:APA[0-9A-Za-z_-]{178}"
+      confidence: "High"
+  - pattern:
+      name: "Cognito User Pool ID"
+      regex: "[a-z]{2}-[a-z]+-[0-9]{1}"
+      confidence: "Medium"

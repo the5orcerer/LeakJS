@@ -138,7 +138,7 @@ func ReadURLs(filePath string) ([]string, error) {
 	return urls, scanner.Err()
 }
 
-func ReadPatterns(yamlFile string) ([]patterns.Pattern, error) {
+func ReadPatterns(yamlFile string, verbose bool) ([]patterns.Pattern, error) {
 	data, err := os.ReadFile(yamlFile)
 	if err != nil {
 		return nil, err
@@ -154,7 +154,9 @@ func ReadPatterns(yamlFile string) ([]patterns.Pattern, error) {
 	for _, pc := range config.Patterns {
 		re, err := patterns.GetCompiledPattern(pc.Pattern.Regex)
 		if err != nil {
-			log.Printf("Invalid regex in pattern %s: %v", pc.Pattern.Name, err)
+			if verbose {
+				log.Printf("Invalid regex in pattern %s: %v", pc.Pattern.Name, err)
+			}
 			continue
 		}
 		pattern := pc.Pattern
@@ -164,7 +166,7 @@ func ReadPatterns(yamlFile string) ([]patterns.Pattern, error) {
 	return pats, nil
 }
 
-func ReadPatternsFromEmbeddedFS() ([]patterns.Pattern, error) {
+func ReadPatternsFromEmbeddedFS(verbose bool) ([]patterns.Pattern, error) {
 	var allPats []patterns.Pattern
 
 	// Read all files in the embedded regex directory
@@ -178,28 +180,36 @@ func ReadPatternsFromEmbeddedFS() ([]patterns.Pattern, error) {
 			filePath := "regex/" + entry.Name()
 			file, err := assets.EmbeddedRegexFS.Open(filePath)
 			if err != nil {
-				log.Printf("Error opening embedded file %s: %v", filePath, err)
+				if verbose {
+					log.Printf("Error opening embedded file %s: %v", filePath, err)
+				}
 				continue
 			}
 
 			data, err := io.ReadAll(file)
 			file.Close()
 			if err != nil {
-				log.Printf("Error reading embedded file %s: %v", filePath, err)
+				if verbose {
+					log.Printf("Error reading embedded file %s: %v", filePath, err)
+				}
 				continue
 			}
 
 			var config patterns.Config
 			err = yaml.Unmarshal(data, &config)
 			if err != nil {
-				log.Printf("Error parsing embedded YAML %s: %v", filePath, err)
+				if verbose {
+					log.Printf("Error parsing embedded YAML %s: %v", filePath, err)
+				}
 				continue
 			}
 
 			for _, pc := range config.Patterns {
 				re, err := patterns.GetCompiledPattern(pc.Pattern.Regex)
 				if err != nil {
-					log.Printf("Invalid regex in embedded pattern %s: %v", pc.Pattern.Name, err)
+					if verbose {
+						log.Printf("Invalid regex in embedded pattern %s: %v", pc.Pattern.Name, err)
+					}
 					continue
 				}
 				pattern := pc.Pattern
@@ -212,7 +222,7 @@ func ReadPatternsFromEmbeddedFS() ([]patterns.Pattern, error) {
 	return allPats, nil
 }
 
-func ReadAllPatternsFromDir(dirPath string) ([]patterns.Pattern, error) {
+func ReadAllPatternsFromDir(dirPath string, verbose bool) ([]patterns.Pattern, error) {
 	var allPats []patterns.Pattern
 
 	// First try to read from filesystem
@@ -225,9 +235,11 @@ func ReadAllPatternsFromDir(dirPath string) ([]patterns.Pattern, error) {
 
 			// Only process YAML files
 			if !info.IsDir() && strings.HasSuffix(strings.ToLower(path), ".yaml") {
-				pats, err := ReadPatterns(path)
+				pats, err := ReadPatterns(path, verbose)
 				if err != nil {
-					log.Printf("Error reading patterns from %s: %v", path, err)
+					if verbose {
+						log.Printf("Error reading patterns from %s: %v", path, err)
+					}
 					return nil // Continue with other files
 				}
 				allPats = append(allPats, pats...)
@@ -236,15 +248,19 @@ func ReadAllPatternsFromDir(dirPath string) ([]patterns.Pattern, error) {
 		})
 
 		if err != nil {
-			log.Printf("Error reading from filesystem, falling back to embedded patterns: %v", err)
+			if verbose {
+				log.Printf("Error reading from filesystem, falling back to embedded patterns: %v", err)
+			}
 		} else if len(allPats) > 0 {
 			return allPats, nil
 		}
 	}
 
 	// Fall back to embedded patterns if filesystem reading failed or returned no patterns
-	log.Printf("Using embedded regex patterns as fallback")
-	embeddedPats, err := ReadPatternsFromEmbeddedFS()
+	if verbose {
+		log.Printf("Using embedded regex patterns as fallback")
+	}
+	embeddedPats, err := ReadPatternsFromEmbeddedFS(verbose)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read embedded patterns: %v", err)
 	}
@@ -252,7 +268,7 @@ func ReadAllPatternsFromDir(dirPath string) ([]patterns.Pattern, error) {
 	return embeddedPats, nil
 }
 
-func ParseDirectPatterns(patternsStr string) ([]patterns.Pattern, error) {
+func ParseDirectPatterns(patternsStr string, verbose bool) ([]patterns.Pattern, error) {
 	var pats []patterns.Pattern
 	for i, pattern := range strings.Split(patternsStr, ";") {
 		pattern = strings.TrimSpace(pattern)
@@ -261,7 +277,9 @@ func ParseDirectPatterns(patternsStr string) ([]patterns.Pattern, error) {
 		}
 		re, err := patterns.GetCompiledPattern(pattern)
 		if err != nil {
-			log.Printf("Invalid regex pattern: %s - Skipped", pattern)
+			if verbose {
+				log.Printf("Invalid regex pattern: %s - Skipped", pattern)
+			}
 			continue
 		}
 		pats = append(pats, patterns.Pattern{
@@ -282,9 +300,13 @@ func ReadFileContent(filePath string) (string, error) {
 	return string(data), nil
 }
 
-func SearchPatterns(content string, pats []patterns.Pattern) map[string]map[string]interface{} {
+func SearchPatterns(content string, pats []patterns.Pattern, highOnly bool) map[string]map[string]interface{} {
 	results := make(map[string]map[string]interface{})
 	for _, pattern := range pats {
+		// Skip non-High confidence patterns if highOnly is enabled
+		if highOnly && pattern.Confidence != "High" {
+			continue
+		}
 		matches := pattern.Compiled.FindAllString(content, -1)
 		if len(matches) > 0 {
 			results[pattern.Name] = map[string]interface{}{
@@ -302,7 +324,7 @@ func DisplayResults(source string, results map[string]map[string]interface{}, so
 		return
 	}
 	if len(results) > 0 {
-		for _, data := range results {
+		for patternName, data := range results {
 			matches := data["matches"].([]string)
 			confidence := data["confidence"].(string)
 			if len(matches) > 0 {
@@ -311,7 +333,7 @@ func DisplayResults(source string, results map[string]map[string]interface{}, so
 				if len(match) > 50 {
 					match = match[:47] + "..."
 				}
-				green.Printf("%s [%s] [%s]\n", source, match, confidence)
+				green.Printf("%s [%s] [%s] [%s]\n", source, match, confidence, patternName)
 			}
 		}
 	}
@@ -333,11 +355,11 @@ func SaveResultsToFile(outputFile, source string, results map[string]map[string]
 	}
 	defer file.Close()
 
-	for _, data := range results {
+	for patternName, data := range results {
 		matches := data["matches"].([]string)
 		confidence := data["confidence"].(string)
 		if len(matches) > 0 {
-			fmt.Fprintf(file, "%s [%s] [%s]\n", source, matches[0], confidence)
+			fmt.Fprintf(file, "%s [%s] [%s] [%s]\n", source, matches[0], confidence, patternName)
 		}
 	}
 	return nil
@@ -371,7 +393,7 @@ func FetchURLContent(url string, client *http.Client) (string, error) {
 	return string(body), nil
 }
 
-func ProcessURL(url string, pats []patterns.Pattern, client *http.Client, outputFile string, verbose, silent, json bool, wg *sync.WaitGroup, mu *sync.Mutex, stats *ScanStats) {
+func ProcessURL(url string, pats []patterns.Pattern, client *http.Client, outputFile string, verbose, silent, json bool, wg *sync.WaitGroup, mu *sync.Mutex, stats *ScanStats, highOnly bool) {
 	defer wg.Done()
 	content, err := FetchURLContent(url, client)
 	if err != nil {
@@ -380,7 +402,7 @@ func ProcessURL(url string, pats []patterns.Pattern, client *http.Client, output
 		}
 		return
 	}
-	results := SearchPatterns(content, pats)
+	results := SearchPatterns(content, pats, highOnly)
 	if len(results) > 0 {
 		mu.Lock()
 		stats.TotalMatches += len(results)
@@ -394,7 +416,7 @@ func ProcessURL(url string, pats []patterns.Pattern, client *http.Client, output
 	}
 }
 
-func ProcessFile(filePath string, pats []patterns.Pattern, outputFile string, verbose, silent, json bool, wg *sync.WaitGroup, mu *sync.Mutex, stats *ScanStats) {
+func ProcessFile(filePath string, pats []patterns.Pattern, outputFile string, verbose, silent, json bool, wg *sync.WaitGroup, mu *sync.Mutex, stats *ScanStats, highOnly bool) {
 	defer wg.Done()
 	content, err := ReadFileContent(filePath)
 	if err != nil {
@@ -403,7 +425,7 @@ func ProcessFile(filePath string, pats []patterns.Pattern, outputFile string, ve
 		}
 		return
 	}
-	results := SearchPatterns(content, pats)
+	results := SearchPatterns(content, pats, highOnly)
 	if len(results) > 0 {
 		mu.Lock()
 		stats.TotalMatches += len(results)
@@ -417,9 +439,9 @@ func ProcessFile(filePath string, pats []patterns.Pattern, outputFile string, ve
 	}
 }
 
-func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allDir, configFile, excludePatterns, outputFile string, concurrency int, verbose, silent, json, showStats bool, benchmarkIterations int, stats *ScanStats) error {
+func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allDir, configFile, excludePatterns, outputFile string, concurrency int, verbose, silent, json, showStats bool, benchmarkIterations int, highOnly bool, stats *ScanStats) error {
 	if benchmarkIterations > 0 {
-		return RunBenchmark(urlsFile, singleURL, patternsFile, directPatterns, filePath, allDir, configFile, excludePatterns, outputFile, concurrency, verbose, silent, json, benchmarkIterations)
+		return RunBenchmark(urlsFile, singleURL, patternsFile, directPatterns, filePath, allDir, configFile, excludePatterns, outputFile, concurrency, verbose, silent, json, benchmarkIterations, highOnly)
 	}
 
 	start := time.Now()
@@ -437,15 +459,13 @@ func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allD
 	}
 
 	// Override config with command-line arguments if provided
-	if concurrency == 1 && config.Concurrency > 0 {
+	if concurrency == 20 && config.Concurrency > 0 {
 		concurrency = config.Concurrency
 	}
 	if outputFile == "" && config.Output != "" {
 		outputFile = config.Output
 	}
-	if !verbose && config.Verbose {
-		verbose = config.Verbose
-	}
+	// Note: verbose is not overridden by config as it's a user display preference
 	if !silent && config.Silent {
 		silent = config.Silent
 	}
@@ -465,17 +485,17 @@ func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allD
 		excludePatterns = config.Exclude
 	}
 
-	pats := patterns.GetBuiltInPatterns()
+	pats := patterns.GetBuiltInPatterns(verbose)
 
 	if allDir != "" {
 		// Load all patterns from directory
-		dirPats, err := ReadAllPatternsFromDir(allDir)
+		dirPats, err := ReadAllPatternsFromDir(allDir, verbose)
 		if err != nil {
 			return fmt.Errorf("error loading patterns from directory %s: %v", allDir, err)
 		}
 		pats = append(pats, dirPats...)
 	} else if patternsFile != "" {
-		additionalPats, err := ReadPatterns(patternsFile)
+		additionalPats, err := ReadPatterns(patternsFile, verbose)
 		if err != nil {
 			return err
 		}
@@ -483,7 +503,7 @@ func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allD
 	}
 
 	if directPatterns != "" {
-		additionalPats, err := ParseDirectPatterns(directPatterns)
+		additionalPats, err := ParseDirectPatterns(directPatterns, verbose)
 		if err != nil {
 			return err
 		}
@@ -552,9 +572,9 @@ func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allD
 				sem <- struct{}{}
 				defer func() { <-sem }()
 				if strings.HasPrefix(src, "http") {
-					ProcessURL(src, pats, client, outputFile, verbose, silent, json, &wg, &mu, stats)
+					ProcessURL(src, pats, client, outputFile, verbose, silent, json, &wg, &mu, stats, highOnly)
 				} else {
-					ProcessFile(src, pats, outputFile, verbose, silent, json, &wg, &mu, stats)
+					ProcessFile(src, pats, outputFile, verbose, silent, json, &wg, &mu, stats, highOnly)
 				}
 				bar.Add(1)
 			}(source)
@@ -566,9 +586,9 @@ func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allD
 				sem <- struct{}{}
 				defer func() { <-sem }()
 				if strings.HasPrefix(src, "http") {
-					ProcessURL(src, pats, client, outputFile, verbose, silent, json, &wg, &mu, stats)
+					ProcessURL(src, pats, client, outputFile, verbose, silent, json, &wg, &mu, stats, highOnly)
 				} else {
-					ProcessFile(src, pats, outputFile, verbose, silent, json, &wg, &mu, stats)
+					ProcessFile(src, pats, outputFile, verbose, silent, json, &wg, &mu, stats, highOnly)
 				}
 			}(source)
 		}
@@ -578,7 +598,7 @@ func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allD
 	return nil
 }
 
-func RunBenchmark(urlsFile, singleURL, patternsFile, directPatterns, filePath, allDir, configFile, excludePatterns, outputFile string, concurrency int, verbose, silent, json bool, benchmarkIterations int) error {
+func RunBenchmark(urlsFile, singleURL, patternsFile, directPatterns, filePath, allDir, configFile, excludePatterns, outputFile string, concurrency int, verbose, silent, json bool, benchmarkIterations int, highOnly bool) error {
 	blue.Printf("[INF] Running benchmark with %d iterations...\n", benchmarkIterations)
 
 	var totalDuration time.Duration
@@ -590,7 +610,7 @@ func RunBenchmark(urlsFile, singleURL, patternsFile, directPatterns, filePath, a
 		stats := &ScanStats{}
 		start := time.Now()
 
-		err := RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allDir, configFile, excludePatterns, outputFile, concurrency, verbose, true, json, false, 0, stats)
+		err := RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allDir, configFile, excludePatterns, outputFile, concurrency, verbose, true, json, false, 0, highOnly, stats)
 		if err != nil {
 			return fmt.Errorf("benchmark iteration %d failed: %v", i+1, err)
 		}
