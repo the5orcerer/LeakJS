@@ -471,7 +471,6 @@ func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allD
 	}
 
 	// We already handled directPatterns above, no need to append again
-	}
 
 	// Filter out excluded patterns
 	if excludePatterns != "" {
