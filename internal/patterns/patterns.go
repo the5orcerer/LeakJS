@@ -51,7 +51,17 @@ type Config struct {
 	Patterns []PatternConfig `yaml:"patterns"`
 }
 
-func GetBuiltInPatterns(verbose bool) []Pattern {
+// LoadPatterns loads and merges both built-in and user patterns
+func LoadPatterns(verbose bool) []Pattern {
+	builtIn := loadBuiltInPatterns(verbose)
+	user, err := LoadUserPatterns(verbose)
+	if err != nil && verbose {
+		log.Printf("Warning: Error loading user patterns: %v", err)
+	}
+	return MergePatterns(builtIn, user)
+}
+
+func loadBuiltInPatterns(verbose bool) []Pattern {
 	builtInPatterns := []struct {
 		name       string
 		regex      string

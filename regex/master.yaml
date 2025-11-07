@@ -1,0 +1,20 @@
+patterns:
+  - pattern:
+      name: Generic Password
+      regex: "(?i)\\b(pass|password|passwd|pwd|passcode|passphrase|pin)\\b\\s*[:=]\\s*['\"]?([a-zA-Z0-9@#$_%&*!+-]{8,})['\"]?"
+      confidence: high
+
+  - pattern:
+      name: Generic Username
+      regex: "(?i)\\b(user|username|login|usr|uid|userid|uname|admin_user|root_user|db_user|email)\\b\\s*[:=]\\s*['\"]?([a-zA-Z0-9-_@.]{5,})['\"]?"
+      confidence: medium
+
+  - pattern:
+      name: Generic Secret
+      regex: "(?i)\\b(secret|token|auth_token|api_key|apiKey|access_token|session_token|jwt_token|encryption_key|ssh_key|crypt_key|access_key)\\b\\s*[:=]\\s*['\"]?([a-zA-Z0-9-_]{8,})['\"]?"
+      confidence: high
+
+  - pattern:
+      name: Sensitive Comment
+      regex: "(?i)(?:#|\\/\\/|\\/\\*|<!--)\\s*(pass|password|passwd|pwd|user|username|secret|token|auth_token|api_key|apiKey|access_key)\\s*[:=]\\s*['\"]?([a-zA-Z0-9@#$_%&*!+-]{5,})['\"]?"
+      confidence: low

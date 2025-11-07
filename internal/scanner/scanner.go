@@ -46,21 +46,42 @@ type Config struct {
 	PatternsDir  string `yaml:"patterns_dir"`
 	PatternsFile string `yaml:"patterns_file"`
 	Exclude      string `yaml:"exclude"`
+	Include      string `yaml:"include"` // New field for pattern shortcuts
 }
 
-func FilterExcludedPatterns(pats []patterns.Pattern, excludeList string) []patterns.Pattern {
-	if excludeList == "" {
+// FilterPatterns applies both include and exclude filters to the pattern list
+func FilterPatterns(pats []patterns.Pattern, includeList, excludeList string) []patterns.Pattern {
+	// If neither include nor exclude is specified, return all patterns
+	if includeList == "" && excludeList == "" {
 		return pats
 	}
 
+	// Create include and exclude maps
+	included := make(map[string]bool)
+	if includeList != "" {
+		for _, name := range strings.Split(includeList, ",") {
+			included[strings.TrimSpace(name)] = true
+		}
+	}
+
 	excluded := make(map[string]bool)
-	for _, name := range strings.Split(excludeList, ",") {
-		excluded[strings.TrimSpace(name)] = true
+	if excludeList != "" {
+		for _, name := range strings.Split(excludeList, ",") {
+			excluded[strings.TrimSpace(name)] = true
+		}
 	}
 
 	var filtered []patterns.Pattern
 	for _, pattern := range pats {
-		if !excluded[pattern.Name] {
+		// Skip if explicitly excluded
+		if excluded[pattern.Name] {
+			continue
+		}
+
+		// Include if either:
+		// 1. No include list specified (include all)
+		// 2. Pattern name is in the include list
+		if includeList == "" || included[pattern.Name] {
 			filtered = append(filtered, pattern)
 		}
 	}
@@ -485,7 +506,7 @@ func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allD
 		excludePatterns = config.Exclude
 	}
 
-	pats := patterns.GetBuiltInPatterns(verbose)
+	pats := patterns.LoadPatterns(verbose)
 
 	if allDir != "" {
 		// Load all patterns from directory
@@ -512,7 +533,7 @@ func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allD
 
 	// Filter out excluded patterns
 	if excludePatterns != "" {
-		pats = FilterExcludedPatterns(pats, excludePatterns)
+		pats = FilterPatterns(pats, config.Include, excludePatterns)
 	}
 
 	stats.PatternsUsed = len(pats)
