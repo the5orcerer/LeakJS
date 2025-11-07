@@ -17,7 +17,6 @@ import (
 	"github.com/schollz/progressbar/v3"
 	"gopkg.in/yaml.v3"
 
-	"github.com/the5orcerer/LeakJS/internal/assets"
 	"github.com/the5orcerer/LeakJS/internal/patterns"
 )
 
@@ -187,106 +186,42 @@ func ReadPatterns(yamlFile string, verbose bool) ([]patterns.Pattern, error) {
 	return pats, nil
 }
 
-func ReadPatternsFromEmbeddedFS(verbose bool) ([]patterns.Pattern, error) {
-	var allPats []patterns.Pattern
-
-	// Read all files in the embedded regex directory
-	entries, err := assets.EmbeddedRegexFS.ReadDir("regex")
-	if err != nil {
-		return nil, err
-	}
-
-	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasSuffix(strings.ToLower(entry.Name()), ".yaml") {
-			filePath := "regex/" + entry.Name()
-			file, err := assets.EmbeddedRegexFS.Open(filePath)
-			if err != nil {
-				if verbose {
-					log.Printf("Error opening embedded file %s: %v", filePath, err)
-				}
-				continue
-			}
-
-			data, err := io.ReadAll(file)
-			file.Close()
-			if err != nil {
-				if verbose {
-					log.Printf("Error reading embedded file %s: %v", filePath, err)
-				}
-				continue
-			}
-
-			var config patterns.Config
-			err = yaml.Unmarshal(data, &config)
-			if err != nil {
-				if verbose {
-					log.Printf("Error parsing embedded YAML %s: %v", filePath, err)
-				}
-				continue
-			}
-
-			for _, pc := range config.Patterns {
-				re, err := patterns.GetCompiledPattern(pc.Pattern.Regex)
-				if err != nil {
-					if verbose {
-						log.Printf("Invalid regex in embedded pattern %s: %v", pc.Pattern.Name, err)
-					}
-					continue
-				}
-				pattern := pc.Pattern
-				pattern.Compiled = re
-				allPats = append(allPats, pattern)
-			}
-		}
-	}
-
-	return allPats, nil
-}
-
 func ReadAllPatternsFromDir(dirPath string, verbose bool) ([]patterns.Pattern, error) {
 	var allPats []patterns.Pattern
 
-	// First try to read from filesystem
-	if _, err := os.Stat(dirPath); err == nil {
-		// Directory exists, read from filesystem
-		err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
+	// Read patterns from filesystem
+	if _, err := os.Stat(dirPath); err != nil {
+		return nil, fmt.Errorf("pattern directory not found: %s", dirPath)
+	}
 
-			// Only process YAML files
-			if !info.IsDir() && strings.HasSuffix(strings.ToLower(path), ".yaml") {
-				pats, err := ReadPatterns(path, verbose)
-				if err != nil {
-					if verbose {
-						log.Printf("Error reading patterns from %s: %v", path, err)
-					}
-					return nil // Continue with other files
-				}
-				allPats = append(allPats, pats...)
-			}
-			return nil
-		})
-
+	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			if verbose {
-				log.Printf("Error reading from filesystem, falling back to embedded patterns: %v", err)
-			}
-		} else if len(allPats) > 0 {
-			return allPats, nil
+			return err
 		}
-	}
 
-	// Fall back to embedded patterns if filesystem reading failed or returned no patterns
-	if verbose {
-		log.Printf("Using embedded regex patterns as fallback")
-	}
-	embeddedPats, err := ReadPatternsFromEmbeddedFS(verbose)
+		// Only process YAML files
+		if !info.IsDir() && strings.HasSuffix(strings.ToLower(path), ".yaml") {
+			pats, err := ReadPatterns(path, verbose)
+			if err != nil {
+				if verbose {
+					log.Printf("Error reading patterns from %s: %v", path, err)
+				}
+				return nil // Continue with other files
+			}
+			allPats = append(allPats, pats...)
+		}
+		return nil
+	})
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to read embedded patterns: %v", err)
+		return nil, fmt.Errorf("error reading patterns from directory: %v", err)
 	}
 
-	return embeddedPats, nil
+	if len(allPats) == 0 {
+		return nil, fmt.Errorf("no pattern files found in directory: %s", dirPath)
+	}
+
+	return allPats, nil
 }
 
 func ParseDirectPatterns(patternsStr string, verbose bool) ([]patterns.Pattern, error) {
@@ -508,6 +443,7 @@ func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allD
 
 	var pats []patterns.Pattern
 
+	// Handle pattern loading
 	if allDir != "" {
 		// Load all patterns from directory
 		dirPats, err := ReadAllPatternsFromDir(allDir, verbose)
@@ -522,9 +458,16 @@ func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allD
 			return err
 		}
 		pats = filePats
+	} else if directPatterns != "" {
+		// Use direct patterns if provided
+		directPats, err := ParseDirectPatterns(directPatterns, verbose)
+		if err != nil {
+			return err
+		}
+		pats = directPats
 	} else {
-		// If no directory or file specified, use built-in patterns
-		pats = patterns.LoadPatterns(verbose)
+		// No patterns specified
+		return fmt.Errorf("no patterns specified. Use -p to specify a pattern file, --all-dir for a directory of patterns, or provide direct patterns")
 	}
 
 	if directPatterns != "" {
