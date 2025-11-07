@@ -506,7 +506,7 @@ func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allD
 		excludePatterns = config.Exclude
 	}
 
-	pats := patterns.LoadPatterns(verbose)
+	var pats []patterns.Pattern
 
 	if allDir != "" {
 		// Load all patterns from directory
@@ -514,13 +514,17 @@ func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allD
 		if err != nil {
 			return fmt.Errorf("error loading patterns from directory %s: %v", allDir, err)
 		}
-		pats = append(pats, dirPats...)
+		pats = dirPats
 	} else if patternsFile != "" {
-		additionalPats, err := ReadPatterns(patternsFile, verbose)
+		// Use only patterns from the specified file
+		filePats, err := ReadPatterns(patternsFile, verbose)
 		if err != nil {
 			return err
 		}
-		pats = append(pats, additionalPats...)
+		pats = filePats
+	} else {
+		// If no directory or file specified, use built-in patterns
+		pats = patterns.LoadPatterns(verbose)
 	}
 
 	if directPatterns != "" {
