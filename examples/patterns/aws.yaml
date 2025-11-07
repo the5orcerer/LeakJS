@@ -1,0 +1,5 @@
+name: AWS Keys
+pattern:
+  name: AWS Access Key Pattern
+  regex: "AKIA[0-9A-Z]{16}"
+  confidence: High
