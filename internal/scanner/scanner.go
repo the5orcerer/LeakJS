@@ -470,12 +470,7 @@ func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allD
 		return fmt.Errorf("no patterns specified. Use -p to specify a pattern file, --all-dir for a directory of patterns, or provide direct patterns")
 	}
 
-	if directPatterns != "" {
-		additionalPats, err := ParseDirectPatterns(directPatterns, verbose)
-		if err != nil {
-			return err
-		}
-		pats = append(pats, additionalPats...)
+	// We already handled directPatterns above, no need to append again
 	}
 
 	// Filter out excluded patterns
