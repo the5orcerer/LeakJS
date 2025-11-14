@@ -1,7 +1,7 @@
 
 # LeakJS
 
-![Go](https://img.shields.io/badge/go-1.18%2B-blue) ![Issues](https://img.shields.io/github/issues/the5orcerer/LeakJS) ![Forks](https://img.shields.io/github/forks/the5orcerer/LeakJS) ![Stars](https://img.shields.io/github/stars/the5orcerer/LeakJS) ![License](https://img.shields.io/github/license/the5orcerer/LeakJS)
+![Go](https://img.shields.io/badge/go-1.18%2B-blue) ![Issues](https://img.shields.io/github/issues/the5orcerer/LeakJS) ![Forks](https://img.shields.io/github/forks/the5orcerer/LeakJS) ![Stars](https://img.shields.io/github/stars/the5orcerer/LeakJS)
 
 ## Getting Started
 
