@@ -1,0 +1,705 @@
+patterns:
+  - pattern:
+      name: "Amazon MWS Token"
+      regex: "amzn\\.mws\\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+      confidence: "High"
+  - pattern:
+      name: "AWS Access Key ID"
+      regex: "(A3T[A-Z0-9]|AKIA|AGPA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}"
+      confidence: "High"
+  - pattern:
+      name: "AWS Access Key ID Extended"
+      regex: "(A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}"
+      confidence: "High"
+  - pattern:
+      name: "Slack Webhook URL"
+      regex: "https://hooks\\.slack\\.com/services/T[a-zA-Z0-9_]{8}/B[a-zA-Z0-9_]{8}/[a-zA-Z0-9_]{24}"
+      confidence: "High"
+  - pattern:
+      name: "VirusTotal API Key"
+      regex: "virustotal[_-]?apikey(=| =|:| :)"
+      confidence: "Medium"
+  - pattern:
+      name: "Generic Token Pattern"
+      regex: "TOKEN[\\-|_|A-Z0-9]*('|\")?(:|=)('|\")?[\\-|_|A-Z0-9]{10}"
+      confidence: "Medium"
+  - pattern:
+      name: "Slack Bot Token"
+      regex: "xoxb-[0-9A-Za-z\\-]{50}"
+      confidence: "High"
+  - pattern:
+      name: "Slack User Token"
+      regex: "xoxp-[0-9A-Za-z\\-]{71}"
+      confidence: "High"
+  - pattern:
+      name: "Generic Token with Equals"
+      regex: "token=[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Mailchimp API Key"
+      regex: "[0-9a-f]{32}-us[0-9]{1,2}"
+      confidence: "High"
+  - pattern:
+      name: "Google API Key"
+      regex: "AIza[0-9A-Za-z\\-_]{35}"
+      confidence: "High"
+  - pattern:
+      name: "Firebase Token"
+      regex: "AAAA[a-zA-Z0-9_-]{5,100}:[a-zA-Z0-9_-]{140}"
+      confidence: "High"
+  - pattern:
+      name: "FTP Credentials in URL"
+      regex: "(ftp|ftps|http|https)://[A-Za-z0-9-_:\\.~]+(@)"
+      confidence: "Medium"
+  - pattern:
+      name: "API Key Pattern"
+      regex: "(API|api)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{10}"
+      confidence: "Medium"
+  - pattern:
+      name: "Token Pattern"
+      regex: "(token|TOKEN)(:|=| : | = )(\"|\")[ 0-9A-Za-z\\-]{10}"
+      confidence: "Medium"
+  - pattern:
+      name: "Secret Pattern"
+      regex: "(SECRET|secret)(:|=| : | = )(\"|\")[0-9A-Za-z\\-]{10}"
+      confidence: "Medium"
+  - pattern:
+      name: "Key Pattern"
+      regex: "(key|KEY)(:|=)[0-9A-Za-z\\-]{10}"
+      confidence: "Medium"
+  - pattern:
+      name: "Secret Key with Underscore"
+      regex: "secret[_-]?0(=| =|:| :)"
+      confidence: "Medium"
+  - pattern:
+      name: "Password Pattern"
+      regex: "(password|PASSWORD)(:|=| : | = )(\"|\")[0-9A-Za-z\\-]{10}"
+      confidence: "Medium"
+  - pattern:
+      name: "Google OAuth Client"
+      regex: "[0-9]+-[0-9A-Za-z_]{32}\\.apps\\.googleusercontent\\.com"
+      confidence: "High"
+  - pattern:
+      name: "GitHub Token"
+      regex: "R_[0-9a-f]{32}"
+      confidence: "High"
+  - pattern:
+      name: "Stripe Live Secret Key"
+      regex: "sk_live_[0-9a-z]{32}"
+      confidence: "High"
+  - pattern:
+      name: "PayPal Access Token"
+      regex: "access_token,production\\$[0-9a-z]{16}\\$[0-9a-f]{32}"
+      confidence: "High"
+  - pattern:
+      name: "Generic Key Pattern"
+      regex: "key-[0-9a-zA-Z]{32}"
+      confidence: "Medium"
+  - pattern:
+      name: "Slack Token Extended"
+      regex: "xox[baprs]-[0-9]{12}-[0-9]{12}-[0-9a-zA-Z]{24}"
+      confidence: "High"
+  - pattern:
+      name: "AWS Access Key ID Simple"
+      regex: "AKIA[0-9A-Z]{16}"
+      confidence: "High"
+  - pattern:
+      name: "Basic Auth"
+      regex: "basic [a-zA-Z0-9]"
+      confidence: "Medium"
+  - pattern:
+      name: "Bearer Token"
+      regex: "bearer [a-zA-Z0-9]"
+      confidence: "Medium"
+  - pattern:
+      name: "Amazon MWS Token Extended"
+      regex: "amzn\\.mws\\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+      confidence: "High"
+  - pattern:
+      name: "Facebook Access Token"
+      regex: "EAACEdEose0cBA[0-9A-Za-z]+"
+      confidence: "High"
+  - pattern:
+      name: "Facebook API Key"
+      regex: "(?i)(facebook|fb)(.{0,20})?[\"|\"][0-9]{13,17}"
+      confidence: "Medium"
+  - pattern:
+      name: "Facebook Token"
+      regex: "[f|F][a|A][c|C][e|E][b|B][o|O][o|O][k|K].*[\"|\"][0-9a-f]{32}[\"|\"]"
+      confidence: "High"
+  - pattern:
+      name: "GitHub API Key"
+      regex: "(GITHUB|github)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{10}"
+      confidence: "Medium"
+  - pattern:
+      name: "Google API Key Alt"
+      regex: "AIza[0-9A-Za-z\\-_]{35}"
+      confidence: "High"
+  - pattern:
+      name: "Google API Key with Context"
+      regex: "(?i)(google|gcp|youtube|drive|yt)(.{0,20})?[\"|\"][AIza[0-9a-z\\-_]{35}][\"|\"]"
+      confidence: "High"
+  - pattern:
+      name: "Google OAuth Client ID"
+      regex: "[0-9]+-[0-9A-Za-z_]{32}\\.apps\\.googleusercontent\\.com"
+      confidence: "High"
+  - pattern:
+      name: "Google OAuth Access Token"
+      regex: "ya29\\.[0-9A-Za-z\\-_]+"
+      confidence: "High"
+  - pattern:
+      name: "Email in mailto"
+      regex: "(?<=mailto:)[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9.-]{10}"
+      confidence: "Medium"
+  - pattern:
+      name: "Stripe Live Key"
+      regex: "sk_live_[0-9a-z]{32}"
+      confidence: "High"
+  - pattern:
+      name: "Slack Token General"
+      regex: "xox[baprs]-([0-9a-zA-Z]{10,48})"
+      confidence: "High"
+  - pattern:
+      name: "Slack Webhook URL Alt"
+      regex: "https://hooks\\.slack\\.com/services/T[a-zA-Z0-9_]{8}/B[a-zA-Z0-9_]{8}/[a-zA-Z0-9_]{24}"
+      confidence: "High"
+  - pattern:
+      name: "Stripe Live Key Alt"
+      regex: "(?:r|s)k_live_[0-9a-zA-Z]{24}"
+      confidence: "High"
+  - pattern:
+      name: "Square OAuth Token"
+      regex: "sqOatp-[0-9A-Za-z\\-_]{22}"
+      confidence: "High"
+  - pattern:
+      name: "Square Access Token"
+      regex: "sq0csp-[ 0-9A-Za-z\\-_]{43}"
+      confidence: "High"
+  - pattern:
+      name: "Twilio API Key"
+      regex: "SK[0-9a-fA-F]{32}"
+      confidence: "High"
+  - pattern:
+      name: "Twitter API Key"
+      regex: "(?i)twitter(.{0,20})?[\"|\"][0-9a-z]{18,25}"
+      confidence: "Medium"
+  - pattern:
+      name: "Twitter Token"
+      regex: "[t|T][w|W][i|I][t|T][t|T][e|E][r|R].{0,30}[\"\\s][0-9a-zA-Z]{35,44}[\"\\s]"
+      confidence: "Medium"
+  - pattern:
+      name: "Twitter API Secret"
+      regex: "(?i)twitter(.{0,20})?[\"|\"][0-9a-z]{35,44}"
+      confidence: "Medium"
+  - pattern:
+      name: "Firebase Token Alt"
+      regex: "AAAA[A-Za-z0-9_-]{5,100}:[A-Za-z0-9_-]{140}"
+      confidence: "High"
+  - pattern:
+      name: "reCAPTCHA Key"
+      regex: "6L[0-9A-Za-z-_]{38}|^6[0-9a-zA-Z_-]{39}$"
+      confidence: "High"
+  - pattern:
+      name: "Google OAuth Token"
+      regex: "ya29\\.[0-9A-Za-z\\-_]+"
+      confidence: "High"
+  - pattern:
+      name: "Amazon MWS Escaped"
+      regex: "amzn\\\\.mws\\\\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+      confidence: "High"
+  - pattern:
+      name: "AWS S3 URL"
+      regex: "s3\\.amazonaws\\.com[/]+|[a-zA-Z0-9_-]*\\.s3\\.amazonaws\\.com"
+      confidence: "Medium"
+  - pattern:
+      name: "AWS S3 Bucket URL"
+      regex: "[a-zA-Z0-9-\\.\_]+\\.s3\\.amazonaws\\.com"
+      confidence: "Medium"
+  - pattern:
+      name: "S3 URI"
+      regex: "s3://[a-zA-Z0-9-\\.\_]+"
+      confidence: "Medium"
+  - pattern:
+      name: "S3 Path"
+      regex: "s3-[a-zA-Z0-9-\\.\_\\/]"
+      confidence: "Medium"
+  - pattern:
+      name: "S3 URL Path"
+      regex: "s3\\.amazonaws\\.com/[a-zA-Z0-9-\\.\_]"
+      confidence: "Medium"
+  - pattern:
+      name: "Basic Auth Extended"
+      regex: "basic [a-zA-Z0-9=:_\\+\\/-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Bearer Token Extended"
+      regex: "bearer [a-zA-Z0-9_\\-\\.=:_\\+\\/]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "API Key Generic"
+      regex: "api[key|_key|\\s+]+[a-zA-Z0-9_\\-]{7,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Twilio Account SID"
+      regex: "AC[a-zA-Z0-9_\\-]{32}"
+      confidence: "High"
+  - pattern:
+      name: "Twilio Auth Token"
+      regex: "AP[a-zA-Z0-9_\\-]{32}"
+      confidence: "High"
+  - pattern:
+      name: "PayPal Production Token"
+      regex: "access_token\\$production\\$[0-9a-z]{16}\\$[0-9a-f]{32}"
+      confidence: "High"
+  - pattern:
+      name: "Square Token Extended"
+      regex: "sq0csp-[ 0-9A-Za-z\\-_]{43}|sq0[a-z]{3}-[0-9A-Za-z\\-_]{22,43}"
+      confidence: "High"
+  - pattern:
+      name: "Square OAuth Extended"
+      regex: "sqOatp-[0-9A-Za-z\\-_]{22}|EAAA[a-zA-Z0-9]{60}"
+      confidence: "High"
+  - pattern:
+      name: "Stripe Live Secret"
+      regex: "sk_live_[0-9a-zA-Z]{24}"
+      confidence: "High"
+  - pattern:
+      name: "Stripe Restricted Key"
+      regex: "rk_live_[0-9a-zA-Z]{24}"
+      confidence: "High"
+  - pattern:
+      name: "GitHub Credentials"
+      regex: "[a-zA-Z0-9_-]*:[a-zA-Z0-9_\\-]+@github\\.com*"
+      confidence: "High"
+  - pattern:
+      name: "JWT Token"
+      regex: "ey[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+/=]*$"
+      confidence: "Medium"
+  - pattern:
+      name: "Slack API Token JSON"
+      regex: "\"api_token\":\"(xox[a-zA-Z]-[a-zA-Z0-9-]+)\""
+      confidence: "High"
+  - pattern:
+      name: "Private Key"
+      regex: "([-]+BEGIN [^\\s]+ PRIVATE KEY[-]+[\\s]*[^-]*[-]+END [^\\s]+ PRIVATE KEY[-]+)"
+      confidence: "High"
+  - pattern:
+      name: "Jekyll GitHub Token"
+      regex: "(JEKYLL_GITHUB_TOKEN|JEKYLL_GITHUB_TOKEN)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Salesforce Username"
+      regex: "(SF_USERNAMEsalesforce|SF_USERNAMESALESFORCE)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Access Key"
+      regex: "(access_key|ACCESS_KEY)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Access Token"
+      regex: "(access_token|ACCESS_TOKEN)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "AWS Credential"
+      regex: "(amazonaws|AMAZONAWS)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "API Secret"
+      regex: "(apiSecret|APISECRET)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "API Key Variable"
+      regex: "(api_key|API_KEY)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "API Secret Variable"
+      regex: "(api_secret|API_SECRET)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "API Docs"
+      regex: "(apidocs|APIDOCS)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Low"
+  - pattern:
+      name: "API Key Variable Alt"
+      regex: "(apikey|APIKEY)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "App Key"
+      regex: "(app_key|APP_KEY)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "App Secret"
+      regex: "(app_secret|APP_SECRET)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "App Key Alt"
+      regex: "(appkey|APPKEY)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "App Key Secret"
+      regex: "(appkeysecret|APPKEYSECRET)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Application Key"
+      regex: "(application_key|APPLICATION_KEY)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "App Secret Alt"
+      regex: "(appsecret|APPSECRET)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "App Spot"
+      regex: "(appspot|APPSPOT)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Low"
+  - pattern:
+      name: "Auth Token"
+      regex: "(auth_token|AUTH_TOKEN)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Authorization Token"
+      regex: "(authorizationToken|AUTHORIZATIONTOKEN)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "AWS Access"
+      regex: "(aws_access|AWS_ACCESS)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "AWS Access Key ID Variable"
+      regex: "(aws_access_key_id|AWS_ACCESS_KEY_ID)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "AWS Key"
+      regex: "(aws_key|AWS_KEY)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "AWS Secret"
+      regex: "(aws_secret|AWS_SECRET)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "AWS Token"
+      regex: "(aws_token|AWS_TOKEN)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Bashrc Password"
+      regex: "(bashrcpassword|BASHRCPASSWORD)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Bucket Password"
+      regex: "(bucket_password|BUCKET_PASSWORD)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Client Secret"
+      regex: "(client_secret|CLIENT_SECRET)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "CloudFront"
+      regex: "(cloudfront|CLOUDFRONT)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Low"
+  - pattern:
+      name: "Codecov Token"
+      regex: "(codecov_token|CODECOV_TOKEN)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Config"
+      regex: "(config|CONFIG)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Low"
+  - pattern:
+      name: "Connection Login"
+      regex: "(conn\\.login|CONN\\.LOGIN)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Connection String"
+      regex: "(connectionstring|CONNECTIONSTRING)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "Consumer Key"
+      regex: "(consumer_key|CONSUMER_KEY)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Credentials"
+      regex: "(credentials|CREDENTIALS)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Database Password"
+      regex: "(database_password|DATABASE_PASSWORD)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "DB Password"
+      regex: "(db_password|DB_PASSWORD)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "DB Username"
+      regex: "(db_username|DB_USERNAME)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "DB Password Alt"
+      regex: "(dbpasswd|DBPASSWD)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "DB Password Variable"
+      regex: "(dbpassword|DBPASSWORD)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "DB User"
+      regex: "(dbuser|DBUSER)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Dot Files Hyphen"
+      regex: "(dot-files|DOT-FILES)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Low"
+  - pattern:
+      name: "Dot Files"
+      regex: "(dotfiles|DOTFILES)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Low"
+  - pattern:
+      name: "Encryption Key"
+      regex: "(encryption_key|ENCRYPTION_KEY)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "Fabric API Secret"
+      regex: "(fabricApiSecret|FABRICAPISECRET)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Facebook Secret"
+      regex: "(fb_secret|FB_SECRET)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Firebase"
+      regex: "(firebase|FIREBASE)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "FTP"
+      regex: "(ftp|FTP)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "GitHub Token Variable"
+      regex: "(gh_token|GH_TOKEN)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "GitHub Key"
+      regex: "(github_key|GITHUB_KEY)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "GitHub Token Variable Alt"
+      regex: "(github_token|GITHUB_TOKEN)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "GitLab"
+      regex: "(gitlab|GITLAB)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Gmail Password"
+      regex: "(gmail_password|GMAIL_PASSWORD)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Gmail Username"
+      regex: "(gmail_username|GMAIL_USERNAME)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Low"
+  - pattern:
+      name: "Google Maps API"
+      regex: "(api\\.googlemapsAIza|API\\.GOOGLEMAPSAIZA)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "Heroku App"
+      regex: "(herokuapp|HEROKUAPP)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Low"
+  - pattern:
+      name: "Internal"
+      regex: "(internal|INTERNAL)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Low"
+  - pattern:
+      name: "IRC Password"
+      regex: "(irc_pass|IRC_PASS)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Key Password"
+      regex: "(keyPassword|KEYPASSWORD)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "LDAP Password"
+      regex: "(ldap_password|LDAP_PASSWORD)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "LDAP Username"
+      regex: "(ldap_username|LDAP_USERNAME)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Login"
+      regex: "(login|LOGIN)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Low"
+  - pattern:
+      name: "MailChimp"
+      regex: "(mailchimp|MAILCHIMP)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Mailgun"
+      regex: "(mailgun|MAILGUN)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Master Key"
+      regex: "(master_key|MASTER_KEY)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "My Dot Files"
+      regex: "(mydotfiles|MYDOTFILES)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Low"
+  - pattern:
+      name: "MySQL"
+      regex: "(mysql|MYSQL)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Low"
+  - pattern:
+      name: "Node Environment"
+      regex: "(node_env|NODE_ENV)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Low"
+  - pattern:
+      name: "NPM Auth"
+      regex: "(npmrc_auth|NPMRC_AUTH)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "OAuth Token"
+      regex: "(oauth_token|OAUTH_TOKEN)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "Pass"
+      regex: "(pass|PASS)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Passwd"
+      regex: "(passwd|PASSWD)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Password Variable"
+      regex: "(password|PASSWORD)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Passwords"
+      regex: "(passwords|PASSWORDS)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "PEM Private"
+      regex: "(pemprivate|PEMPRIVATE)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "Preprod"
+      regex: "(preprod|PREPROD)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Low"
+  - pattern:
+      name: "Private Key Variable"
+      regex: "(private_key|PRIVATE_KEY)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "Production"
+      regex: "(prod|PROD)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Low"
+  - pattern:
+      name: "PWD"
+      regex: "(pwd|PWD)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "PWDs"
+      regex: "(pwds|PWDS)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "RDS Password"
+      regex: "(rds\\.amazonaws\\.compassword|RDS\\.AMAZONAWS\\.COMPASSWORD)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "Redis Password"
+      regex: "(redis_password|REDIS_PASSWORD)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "Root Password"
+      regex: "(root_password|ROOT_PASSWORD)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "Secret Variable"
+      regex: "(secret|SECRET)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Secret Password"
+      regex: "(secret\\.password|SECRET\\.PASSWORD)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "Secret Access Key"
+      regex: "(secret_access_key|SECRET_ACCESS_KEY)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "Secret Key Variable"
+      regex: "(secret_key|SECRET_KEY)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "Secret Token Variable"
+      regex: "(secret_token|SECRET_TOKEN)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "Secrets"
+      regex: "(secrets|SECRETS)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Secure"
+      regex: "(secure|SECURE)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Low"
+  - pattern:
+      name: "Security Credentials"
+      regex: "(security_credentials|SECURITY_CREDENTIALS)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "Send Keys Dot"
+      regex: "(send\\.keys|SEND\\.KEYS)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Low"
+  - pattern:
+      name: "Send Keys"
+      regex: "(send_keys|SEND_KEYS)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Low"
+  - pattern:
+      name: "Salesforce Username Alt"
+      regex: "(sf_username|SF_USERNAME)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Slack API"
+      regex: "(slack_api|SLACK_API)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Slack Token Variable"
+      regex: "(slack_token|SLACK_TOKEN)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "SQL Password"
+      regex: "(sql_password|SQL_PASSWORD)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "SSH"
+      regex: "(ssh|SSH)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "SSH2 Auth Password"
+      regex: "(ssh2_auth_password|SSH2_AUTH_PASSWORD)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "SSH Pass"
+      regex: "(sshpass|SSHPASS)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "High"
+  - pattern:
+      name: "Staging"
+      regex: "(staging|STAGING)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Low"
+  - pattern:
+      name: "STG"
+      regex: "(stg|STG)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Low"
+  - pattern:
+      name: "Store Password"
+      regex: "(storePassword|STOREPASSWORD)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Stripe"
+      regex: "(stripe|STRIPE)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Medium"
+  - pattern:
+      name: "Swagger"
+      regex: "(swagger|SWAGGER)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Low"
+  - pattern:
+      name: "Test User"
+      regex: "(testuser|TESTUSER)(:|=| : | = )( |\"|')[0-9A-Za-z\\-]{5,100}"
+      confidence: "Low"
