@@ -435,7 +435,11 @@ func Crawl(targetURL string, opts Options) ([]string, error) {
 					mu.Lock()
 					activeTasks--
 					if len(queue) == 0 && activeTasks <= 0 {
-						close(done)
+						select {
+						case <-done:
+						default:
+							close(done)
+						}
 						mu.Unlock()
 						return
 					}
@@ -488,4 +492,3 @@ func Crawl(targetURL string, opts Options) ([]string, error) {
 
 	return jsURLs, nil
 }
-
