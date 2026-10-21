@@ -661,6 +661,9 @@ func Run(opts ScanOptions) error {
 	}
 
 	// Handle Crawl Mode
+	if opts.CrawlOnly {
+		opts.Crawl = true
+	}
 	var crawledJS []string
 	if opts.Crawl {
 		var seedURLs []string

@@ -86,6 +86,7 @@ func BuildHTTPClient(timeout time.Duration, proxyStr string, insecure bool) (*ht
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: insecure,
 		},
+		ForceAttemptHTTP2:   true,
 		MaxIdleConns:        100,
 		MaxIdleConnsPerHost: 20,
 		IdleConnTimeout:     90 * time.Second,
@@ -102,21 +103,68 @@ func BuildHTTPClient(timeout time.Duration, proxyStr string, insecure bool) (*ht
 	client := &http.Client{
 		Transport: transport,
 		Timeout:   timeout,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 10 {
+				return fmt.Errorf("stopped after 10 redirects")
+			}
+			// Forward Cookies and Authorization headers to redirects on the same root domain
+			if len(via) > 0 {
+				lastReq := via[len(via)-1]
+				lastDomain := strings.TrimPrefix(strings.ToLower(lastReq.URL.Hostname()), "www.")
+				newDomain := strings.TrimPrefix(strings.ToLower(req.URL.Hostname()), "www.")
+				if lastDomain == newDomain || strings.HasSuffix(newDomain, "."+lastDomain) {
+					if cookie := lastReq.Header.Get("Cookie"); cookie != "" && req.Header.Get("Cookie") == "" {
+						req.Header.Set("Cookie", cookie)
+					}
+					if auth := lastReq.Header.Get("Authorization"); auth != "" && req.Header.Get("Authorization") == "" {
+						req.Header.Set("Authorization", auth)
+					}
+				}
+			}
+			return nil
+		},
 	}
 
 	return client, nil
 }
 
-// ApplyHeaders attaches standard headers, cookies, and custom headers to an HTTP request.
+// ApplyHeaders attaches standard browser headers, cookies, and custom headers to an HTTP request.
 func ApplyHeaders(req *http.Request, cookies string, headers []string, userAgent string) {
 	if userAgent != "" {
 		req.Header.Set("User-Agent", userAgent)
 	} else if req.Header.Get("User-Agent") == "" {
-		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
 	}
 
 	if req.Header.Get("Accept") == "" {
-		req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
+		req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
+	}
+	if req.Header.Get("Accept-Language") == "" {
+		req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+	}
+	if req.Header.Get("Sec-Ch-Ua") == "" {
+		req.Header.Set("Sec-Ch-Ua", `"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"`)
+	}
+	if req.Header.Get("Sec-Ch-Ua-Mobile") == "" {
+		req.Header.Set("Sec-Ch-Ua-Mobile", "?0")
+	}
+	if req.Header.Get("Sec-Ch-Ua-Platform") == "" {
+		req.Header.Set("Sec-Ch-Ua-Platform", `"Windows"`)
+	}
+	if req.Header.Get("Sec-Fetch-Dest") == "" {
+		req.Header.Set("Sec-Fetch-Dest", "document")
+	}
+	if req.Header.Get("Sec-Fetch-Mode") == "" {
+		req.Header.Set("Sec-Fetch-Mode", "navigate")
+	}
+	if req.Header.Get("Sec-Fetch-Site") == "" {
+		req.Header.Set("Sec-Fetch-Site", "none")
+	}
+	if req.Header.Get("Sec-Fetch-User") == "" {
+		req.Header.Set("Sec-Fetch-User", "?1")
+	}
+	if req.Header.Get("Upgrade-Insecure-Requests") == "" {
+		req.Header.Set("Upgrade-Insecure-Requests", "1")
 	}
 
 	// Attach Cookie
@@ -149,14 +197,22 @@ func ApplyHeaders(req *http.Request, cookies string, headers []string, userAgent
 	}
 }
 
-// NormalizeTargetURL ensures the target has an http:// or https:// scheme.
+// NormalizeTargetURL ensures the target has an http:// or https:// scheme and cleans trailing slashes.
 func NormalizeTargetURL(raw string) string {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return ""
 	}
 	if !strings.HasPrefix(raw, "http://") && !strings.HasPrefix(raw, "https://") {
-		return "https://" + raw
+		raw = "https://" + raw
+	}
+	u, err := url.Parse(raw)
+	if err == nil {
+		// Strip trailing slash on path if it has subpaths (e.g. /brand-portal/ -> /brand-portal)
+		if len(u.Path) > 1 && strings.HasSuffix(u.Path, "/") {
+			u.Path = strings.TrimRight(u.Path, "/")
+			raw = u.String()
+		}
 	}
 	return raw
 }
@@ -402,6 +458,14 @@ func Crawl(targetURL string, opts Options) ([]string, error) {
 						return
 					}
 					defer resp.Body.Close()
+
+					if resp.StatusCode == 403 {
+						if opts.Verbose {
+							log.Printf("[CRAWL] Warning: HTTP 403 Forbidden for %s (bot protection or expired cookie)", item.URL)
+						}
+					} else if resp.StatusCode >= 400 && opts.Verbose {
+						log.Printf("[CRAWL] Warning: HTTP %d for %s", resp.StatusCode, item.URL)
+					}
 
 					cType := strings.ToLower(resp.Header.Get("Content-Type"))
 					if !strings.Contains(cType, "html") && !strings.Contains(cType, "javascript") && !strings.Contains(cType, "text") && cType != "" {

@@ -78,6 +78,10 @@ func main() {
 				return
 			}
 
+			if crawlOnly {
+				crawl = true
+			}
+
 			scanStats := &scanner.ScanStats{}
 			opts := scanner.ScanOptions{
 				URLsFile:            list,

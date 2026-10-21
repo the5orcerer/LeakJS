@@ -1,4 +1,4 @@
-VERSION ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v1.3.0")
+VERSION ?= $(shell git tag -l | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$$' | sort -V | tail -n 1 || echo "v1.3.0")
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "dev")
 DATE ?= $(shell date -u +%Y-%m-%d)
 LDFLAGS = -ldflags="-s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)"
