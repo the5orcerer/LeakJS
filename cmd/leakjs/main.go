@@ -8,15 +8,22 @@ import (
 	"github.com/the5orcerer/LeakJS/internal/scanner"
 )
 
+var (
+	version = "v1.3.0"
+	commit  = "dev"
+	date    = "unknown"
+)
+
 func banner() {
-	fmt.Println(`
+	fmt.Printf(`
                         __               __       _______
                        / /   ___  ____ _/ /__    / / ___/
                       / /   / _ \/ __ \` + "`" + ` //_/_  / /\__ \
                      / /___/  __/ /_/ / ,< / /_/ /___/ /
                     /_____/\___/\__,_/_/|_|\\____//____/
                                                @rootplinix
-	`)
+                         Version: %s
+	`+"\n", version)
 }
 
 func main() {
@@ -40,6 +47,7 @@ func main() {
 		json        bool
 		stats       bool
 		help        bool
+		showVersion bool
 		highOnly    bool
 		cookies     string
 		headers     []string
@@ -61,6 +69,10 @@ func main() {
 		Use:   "leakjs",
 		Short: "A fast, concurrent JavaScript secret leak detector and crawler",
 		Run: func(cmd *cobra.Command, args []string) {
+			if showVersion {
+				fmt.Printf("LeakJS %s (commit: %s, built: %s)\n", version, commit, date)
+				return
+			}
 			if help {
 				cmd.Help()
 				return
@@ -152,6 +164,7 @@ func main() {
 	rootCmd.Flags().BoolVarP(&json, "json", "j", false, "Output results in JSON format")
 	rootCmd.Flags().BoolVarP(&stats, "stats", "t", false, "Show scan statistics at the end")
 	rootCmd.Flags().IntVarP(&benchmark, "benchmark", "b", 0, "Run benchmark with specified number of iterations")
+	rootCmd.Flags().BoolVarP(&showVersion, "version", "V", false, "Show version information and exit")
 	rootCmd.Flags().BoolVar(&help, "help", false, "Show help message and exit")
 
 	if err := rootCmd.Execute(); err != nil {

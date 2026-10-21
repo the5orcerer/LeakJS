@@ -1,7 +1,21 @@
-.PHONY: build install clean
+VERSION ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v1.3.0")
+COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "dev")
+DATE ?= $(shell date -u +%Y-%m-%d)
+LDFLAGS = -ldflags="-s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)"
+
+.PHONY: build test changelog shrink install clean uninstall
 
 build:
-	go build -o leakjs ./cmd/leakjs
+	go build $(LDFLAGS) -o leakjs ./cmd/leakjs
+
+test:
+	go test -v ./...
+
+changelog:
+	./scripts/generate-changelog.sh
+
+shrink:
+	./scripts/shrink-repo.sh
 
 install: build
 	sudo mv leakjs /usr/local/bin/
@@ -9,6 +23,7 @@ install: build
 
 clean:
 	rm -f leakjs
+	rm -rf dist/
 
 uninstall:
 	sudo rm -f /usr/local/bin/leakjs

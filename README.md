@@ -226,6 +226,21 @@ stats: true
 
 ---
 
+## 🤖 Automated Releases & Versioning
+
+LeakJS features a fully automated CI/CD release pipeline via GitHub Actions ([.github/workflows/release.yml](.github/workflows/release.yml)):
+
+- **Automatic Semantic Versioning**: Calculates the next version (`vMAJOR.MINOR.PATCH`) based on commits since the previous release (`feat` -> minor bump, `fix` -> patch bump, `BREAKING CHANGE` -> major bump).
+- **Automated Changelog**: Generates a categorized release change log (Features, Bug Fixes, Improvements, Documentation) and publishes it with each release.
+- **Cross-Platform Compilation**: Automatically builds and packages binaries for:
+  - Linux (`amd64`, `arm64`)
+  - macOS (`amd64`, `arm64` Apple Silicon)
+  - Windows (`amd64`, `arm64`)
+- **Integrity Verification**: Generates and uploads SHA-256 `checksums.txt` for all release assets.
+- **Manual Trigger Support**: Releases can also be dispatched manually via GitHub Actions with optional version overrides.
+
+---
+
 ## 🧹 Repository Size & History Cleanup
 
 If you previously cloned the repository and noticed a larger download size (~13MB), this was due to historical snapshots of compiled binaries (`leakjs`) that were committed in past revisions.

@@ -4,107 +4,226 @@ on:
   push:
     branches:
       - main
+    tags-ignore:
+      - 'v*'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Manual version override (e.g. v1.3.0). Leave blank to auto-calculate.'
+        required: false
+        default: ''
+      bump:
+        description: 'Version bump strategy if auto-calculating'
+        required: true
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - patch
+          - minor
+          - major
 
 permissions:
   contents: write
 
 jobs:
   release:
+    name: Build & Release
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.24.9'
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache: true
 
-    - name: Get next semantic version
-      id: version
-      run: |
-        # Get the latest tag
-        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-        echo "Latest tag: $LATEST_TAG"
-        
-        # Parse version components
-        VERSION=${LATEST_TAG#v}
-        MAJOR=$(echo $VERSION | cut -d. -f1)
-        MINOR=$(echo $VERSION | cut -d. -f2)
-        PATCH=$(echo $VERSION | cut -d. -f3)
-        
-        # Get commit messages since last tag
-        if [ "$LATEST_TAG" = "v0.0.0" ]; then
-          COMMITS=$(git log --oneline)
-        else
-          COMMITS=$(git log ${LATEST_TAG}..HEAD --oneline)
-        fi
-        
-        # Determine version bump based on conventional commits
-        if echo "$COMMITS" | grep -qiE "^[a-f0-9]+ (BREAKING CHANGE|feat!|fix!|refactor!)"; then
-          MAJOR=$((MAJOR + 1))
-          MINOR=0
-          PATCH=0
-        elif echo "$COMMITS" | grep -qiE "^[a-f0-9]+ feat"; then
-          MINOR=$((MINOR + 1))
-          PATCH=0
-        else
-          PATCH=$((PATCH + 1))
-        fi
-        
-        NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
-        echo "New version: $NEW_VERSION"
-        echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+      - name: Run Unit Tests
+        run: |
+          go test -v ./...
 
-    - name: Build and package binaries
-      run: |
-        # Build all binaries
-        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o leakjs ./cmd/leakjs
-        chmod +x leakjs
-        zip leakjs-linux-amd64.zip leakjs
-        rm leakjs
+      - name: Determine Next Semantic Version
+        id: version
+        run: |
+          MANUAL_VERSION="${{ github.event.inputs.version }}"
+          BUMP_CHOICE="${{ github.event.inputs.bump }}"
 
-        GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o leakjs ./cmd/leakjs
-        chmod +x leakjs
-        zip leakjs-linux-arm64.zip leakjs
-        rm leakjs
+          if [ -n "$MANUAL_VERSION" ]; then
+            if [[ ! "$MANUAL_VERSION" =~ ^v ]]; then
+              MANUAL_VERSION="v${MANUAL_VERSION}"
+            fi
+            NEW_VERSION="$MANUAL_VERSION"
+            echo "Using manual version override: $NEW_VERSION"
+          else
+            # Find the most recent semver tag
+            LATEST_TAG=$(git tag -l | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1 || true)
+            echo "Latest semver tag found: '$LATEST_TAG'"
 
-        GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o leakjs ./cmd/leakjs
-        chmod +x leakjs
-        zip leakjs-macos-amd64.zip leakjs
-        rm leakjs
+            if [ -z "$LATEST_TAG" ]; then
+              LATEST_TAG="v1.2.4"
+              echo "No valid semver tag found. Defaulting base version to: $LATEST_TAG"
+            fi
 
-        GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o leakjs ./cmd/leakjs
-        chmod +x leakjs
-        zip leakjs-macos-arm64.zip leakjs
-        rm leakjs
+            VERSION="${LATEST_TAG#v}"
+            MAJOR=$(echo "$VERSION" | cut -d. -f1)
+            MINOR=$(echo "$VERSION" | cut -d. -f2)
+            PATCH=$(echo "$VERSION" | cut -d. -f3)
 
-        GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o leakjs.exe ./cmd/leakjs
-        zip leakjs-windows-amd64.zip leakjs.exe
-        rm leakjs.exe
+            # Collect commits since the previous tag
+            if git rev-parse "$LATEST_TAG" >/dev/null 2>&1; then
+              COMMITS=$(git log "${LATEST_TAG}..HEAD" --oneline || true)
+            else
+              COMMITS=$(git log -n 15 --oneline || true)
+            fi
 
-        GOOS=windows GOARCH=arm64 go build -ldflags="-s -w" -o leakjs.exe ./cmd/leakjs
-        zip leakjs-windows-arm64.zip leakjs.exe
-        rm leakjs.exe
+            if [ "$BUMP_CHOICE" = "major" ] || ([ "$BUMP_CHOICE" = "auto" ] && echo "$COMMITS" | grep -qiE "(BREAKING CHANGE|feat!|fix!)"); then
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+            elif [ "$BUMP_CHOICE" = "minor" ] || ([ "$BUMP_CHOICE" = "auto" ] && echo "$COMMITS" | grep -qiE "(feat:|feat\()"); then
+              MINOR=$((MINOR + 1))
+              PATCH=0
+            else
+              PATCH=$((PATCH + 1))
+            fi
 
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ steps.version.outputs.version }}
-        name: Release ${{ steps.version.outputs.version }}
-        draft: false
-        prerelease: false
-        generate_release_notes: true
-        files: |
-          leakjs-linux-amd64.zip
-          leakjs-linux-arm64.zip
-          leakjs-macos-amd64.zip
-          leakjs-macos-arm64.zip
-          leakjs-windows-amd64.zip
-          leakjs-windows-arm64.zip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+
+            # Ensure we do not collide with an existing tag
+            while git rev-parse "$NEW_VERSION" >/dev/null 2>&1; do
+              PATCH=$((PATCH + 1))
+              NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+            done
+
+            echo "Calculated new version: $NEW_VERSION"
+          fi
+
+          echo "version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          echo "prev_tag=${LATEST_TAG}" >> $GITHUB_OUTPUT
+
+      - name: Generate Latest Changes Log
+        id: changelog
+        run: |
+          PREV_TAG="${{ steps.version.outputs.prev_tag }}"
+          NEW_VERSION="${{ steps.version.outputs.version }}"
+
+          echo "## Release ${NEW_VERSION}" > release_notes.md
+          echo "" >> release_notes.md
+
+          if [ -n "$PREV_TAG" ] && git rev-parse "$PREV_TAG" >/dev/null 2>&1; then
+            COMMITS=$(git log "${PREV_TAG}..HEAD" --pretty=format:"%h|%s|%an")
+          else
+            COMMITS=$(git log -n 20 --pretty=format:"%h|%s|%an")
+          fi
+
+          FEATS=""
+          FIXES=""
+          REFACTOR=""
+          DOCS=""
+          OTHER=""
+
+          while IFS="|" read -r hash subject author; do
+            [ -z "$hash" ] && continue
+            item="* ${subject} ([${hash}](https://github.com/${{ github.repository }}/commit/${hash})) by @${author}"
+            if echo "$subject" | grep -qiE "^feat(\(.*\))?:"; then
+              FEATS="${FEATS}${item}"$'\n'
+            elif echo "$subject" | grep -qiE "^fix(\(.*\))?:"; then
+              FIXES="${FIXES}${item}"$'\n'
+            elif echo "$subject" | grep -qiE "^(perf|refactor)(\(.*\))?:"; then
+              REFACTOR="${REFACTOR}${item}"$'\n'
+            elif echo "$subject" | grep -qiE "^docs(\(.*\))?:"; then
+              DOCS="${DOCS}${item}"$'\n'
+            else
+              OTHER="${OTHER}${item}"$'\n'
+            fi
+          done <<< "$COMMITS"
+
+          if [ -n "$FEATS" ]; then
+            echo "### 🚀 Features" >> release_notes.md
+            echo "$FEATS" >> release_notes.md
+          fi
+          if [ -n "$FIXES" ]; then
+            echo "### 🐛 Bug Fixes" >> release_notes.md
+            echo "$FIXES" >> release_notes.md
+          fi
+          if [ -n "$REFACTOR" ]; then
+            echo "### ⚡ Performance & Refactoring" >> release_notes.md
+            echo "$REFACTOR" >> release_notes.md
+          fi
+          if [ -n "$DOCS" ]; then
+            echo "### 📝 Documentation" >> release_notes.md
+            echo "$DOCS" >> release_notes.md
+          fi
+          if [ -n "$OTHER" ]; then
+            echo "### 📦 Other Changes" >> release_notes.md
+            echo "$OTHER" >> release_notes.md
+          fi
+
+          echo "---" >> release_notes.md
+          echo "### 📥 Checksums" >> release_notes.md
+          echo "Verify file integrity with the attached \`checksums.txt\`." >> release_notes.md
+
+      - name: Build and Package Cross-Platform Binaries
+        run: |
+          NEW_VERSION="${{ steps.version.outputs.version }}"
+          BUILD_DATE=$(date -u +%Y-%m-%d)
+          LDFLAGS="-s -w -X main.version=${NEW_VERSION} -X main.commit=${GITHUB_SHA} -X main.date=${BUILD_DATE}"
+
+          mkdir -p dist
+
+          PLATFORMS=(
+            "linux/amd64"
+            "linux/arm64"
+            "darwin/amd64"
+            "darwin/arm64"
+            "windows/amd64"
+            "windows/arm64"
+          )
+
+          for PLATFORM in "${PLATFORMS[@]}"; do
+            GOOS=${PLATFORM%/*}
+            GOARCH=${PLATFORM#*/}
+            OUTPUT_NAME="leakjs"
+            if [ "$GOOS" = "windows" ]; then
+              OUTPUT_NAME="leakjs.exe"
+            fi
+
+            echo "Building for $GOOS/$GOARCH..."
+            env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags="$LDFLAGS" -o "dist/${OUTPUT_NAME}" ./cmd/leakjs
+
+            # Standalone raw binary
+            if [ "$GOOS" = "windows" ]; then
+              cp "dist/${OUTPUT_NAME}" "dist/leakjs-${GOOS}-${GOARCH}.exe"
+              (cd dist && zip -9 "leakjs-${NEW_VERSION}-${GOOS}-${GOARCH}.zip" "${OUTPUT_NAME}" ../README.md ../LICENSE)
+            else
+              chmod +x "dist/${OUTPUT_NAME}"
+              cp "dist/${OUTPUT_NAME}" "dist/leakjs-${GOOS}-${GOARCH}"
+              tar -czf "dist/leakjs-${NEW_VERSION}-${GOOS}-${GOARCH}.tar.gz" -C dist "${OUTPUT_NAME}" -C .. README.md LICENSE
+            fi
+
+            rm -f "dist/${OUTPUT_NAME}"
+          done
+
+          # Generate SHA256 Checksums
+          cd dist
+          sha256sum * > checksums.txt
+          cat checksums.txt
+
+      - name: Create GitHub Release & Upload Binaries
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
