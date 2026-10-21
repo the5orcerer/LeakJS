@@ -10,21 +10,22 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 var (
 	// Regex patterns for script sources
-	scriptSrcRegex       = regexp.MustCompile(`(?i)<script[^>]+src=["']?([^"'>\s]+)`)
-	linkJSRegex          = regexp.MustCompile(`(?i)<link[^>]+href=["']?([^"'>\s]+\.js(?:\?[^"'>\s]*)?)["']`)
-	linkPreloadScript    = regexp.MustCompile(`(?i)<link[^>]+(?:as=["']script["'][^>]+href=["']?([^"'>\s]+)|href=["']?([^"'>\s]+)["'][^>]+as=["']script["'])`)
+	scriptSrcRegex       = regexp.MustCompile(`(?i)<script[^>]+src\s*=\s*(?:"([^"]+)"|'([^']+)'|([^"'>\s]+))`)
+	linkJSRegex          = regexp.MustCompile(`(?i)<link[^>]+href\s*=\s*(?:"([^"]+\.js(?:\?[^"]*)?)"|'([^']+\.js(?:\?[^']*)?)'|([^"'>\s]+\.js(?:\?[^"'>\s]*)?))`)
+	linkPreloadScript    = regexp.MustCompile(`(?i)<link[^>]+(?:as=["']script["'][^>]+href\s*=\s*(?:"([^"]+)"|'([^']+)'|([^"'>\s]+))|href\s*=\s*(?:"([^"]+)"|'([^']+)'|([^"'>\s]+))[^>]+as=["']script["'])`)
 	inlineScriptTagRegex = regexp.MustCompile(`(?is)<script[^>]*>(.*?)</script>`)
 	dynamicImportRegex   = regexp.MustCompile(`(?i)import\s*\(\s*['"]([^'"]+\.js(?:\?[^'"]*)?)['"]\s*\)`)
 	jsPathRegex          = regexp.MustCompile(`['"]((?:/[a-zA-Z0-9_\-\.]+)+/[a-zA-Z0-9_\-\.]+\.js(?:\?[a-zA-Z0-9_\-=&%]*)?)['"]`)
 	jsFullURLRegex       = regexp.MustCompile(`['"]((?:https?:)?//[a-zA-Z0-9_\-\.]+(?::[0-9]+)?/[a-zA-Z0-9_\-\./]+\.js(?:\?[a-zA-Z0-9_\-=&%]*)?)['"]`)
 
 	// Regex for crawling hyperlinks
-	aHrefRegex = regexp.MustCompile(`(?i)<a[^>]+href=["']?([^"'>\s#]+)`)
+	aHrefRegex = regexp.MustCompile(`(?i)<a[^>]+href\s*=\s*(?:"([^"#]+)"|'([^'#]+)'|([^"'>\s#]+))`)
 
 	// Static media extensions to skip when crawling HTML pages
 	skipExtensions = map[string]bool{
@@ -115,7 +116,7 @@ func ApplyHeaders(req *http.Request, cookies string, headers []string, userAgent
 	}
 
 	if req.Header.Get("Accept") == "" {
-		req.Header.Set("Accept", "*/*")
+		req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
 	}
 
 	// Attach Cookie
@@ -163,6 +164,9 @@ func NormalizeTargetURL(raw string) string {
 // ResolveURL resolves a relative URL reference against a base page URL.
 func ResolveURL(baseURL *url.URL, ref string) string {
 	ref = strings.TrimSpace(ref)
+	// Unescape JSON escaped slashes if any
+	ref = strings.ReplaceAll(ref, `\/`, `/`)
+
 	if ref == "" || strings.HasPrefix(ref, "javascript:") || strings.HasPrefix(ref, "data:") || strings.HasPrefix(ref, "mailto:") {
 		return ""
 	}
@@ -192,26 +196,33 @@ func ResolveURL(baseURL *url.URL, ref string) string {
 func ExtractJS(htmlContent string, baseURL *url.URL) []string {
 	found := make(map[string]bool)
 
+	// Unescape JSON escaped slashes in the HTML content for Next.js / React chunk extraction
+	cleanHTML := strings.ReplaceAll(htmlContent, `\/`, `/`)
+
 	// 1. <script src="...">
-	for _, m := range scriptSrcRegex.FindAllStringSubmatch(htmlContent, -1) {
-		if len(m) > 1 {
-			if u := ResolveURL(baseURL, m[1]); u != "" {
-				found[u] = true
+	for _, m := range scriptSrcRegex.FindAllStringSubmatch(cleanHTML, -1) {
+		for i := 1; i < len(m); i++ {
+			if m[i] != "" {
+				if u := ResolveURL(baseURL, m[i]); u != "" {
+					found[u] = true
+				}
 			}
 		}
 	}
 
 	// 2. <link href="...js">
-	for _, m := range linkJSRegex.FindAllStringSubmatch(htmlContent, -1) {
-		if len(m) > 1 {
-			if u := ResolveURL(baseURL, m[1]); u != "" {
-				found[u] = true
+	for _, m := range linkJSRegex.FindAllStringSubmatch(cleanHTML, -1) {
+		for i := 1; i < len(m); i++ {
+			if m[i] != "" {
+				if u := ResolveURL(baseURL, m[i]); u != "" {
+					found[u] = true
+				}
 			}
 		}
 	}
 
 	// 3. <link rel="preload" as="script" href="...">
-	for _, m := range linkPreloadScript.FindAllStringSubmatch(htmlContent, -1) {
+	for _, m := range linkPreloadScript.FindAllStringSubmatch(cleanHTML, -1) {
 		for i := 1; i < len(m); i++ {
 			if m[i] != "" {
 				if u := ResolveURL(baseURL, m[i]); u != "" {
@@ -222,25 +233,25 @@ func ExtractJS(htmlContent string, baseURL *url.URL) []string {
 	}
 
 	// 4. Inline scripts: inspect dynamic imports and referenced JS chunk paths
-	for _, sm := range inlineScriptTagRegex.FindAllStringSubmatch(htmlContent, -1) {
+	for _, sm := range inlineScriptTagRegex.FindAllStringSubmatch(cleanHTML, -1) {
 		if len(sm) > 1 {
 			inlineCode := sm[1]
 			for _, m := range dynamicImportRegex.FindAllStringSubmatch(inlineCode, -1) {
-				if len(m) > 1 {
+				if len(m) > 1 && m[1] != "" {
 					if u := ResolveURL(baseURL, m[1]); u != "" {
 						found[u] = true
 					}
 				}
 			}
 			for _, m := range jsPathRegex.FindAllStringSubmatch(inlineCode, -1) {
-				if len(m) > 1 {
+				if len(m) > 1 && m[1] != "" {
 					if u := ResolveURL(baseURL, m[1]); u != "" {
 						found[u] = true
 					}
 				}
 			}
 			for _, m := range jsFullURLRegex.FindAllStringSubmatch(inlineCode, -1) {
-				if len(m) > 1 {
+				if len(m) > 1 && m[1] != "" {
 					if u := ResolveURL(baseURL, m[1]); u != "" {
 						found[u] = true
 					}
@@ -259,12 +270,20 @@ func ExtractJS(htmlContent string, baseURL *url.URL) []string {
 // ExtractLinks extracts navigable HTML links within the crawl scope.
 func ExtractLinks(htmlContent string, baseURL *url.URL, scopeHost string, allowSubdomains bool) []string {
 	found := make(map[string]bool)
+	rootDomain := strings.TrimPrefix(strings.ToLower(scopeHost), "www.")
 
 	for _, m := range aHrefRegex.FindAllStringSubmatch(htmlContent, -1) {
-		if len(m) <= 1 {
+		raw := ""
+		for i := 1; i < len(m); i++ {
+			if m[i] != "" {
+				raw = m[i]
+				break
+			}
+		}
+		if raw == "" {
 			continue
 		}
-		raw := m[1]
+
 		resolved := ResolveURL(baseURL, raw)
 		if resolved == "" {
 			continue
@@ -276,13 +295,15 @@ func ExtractLinks(htmlContent string, baseURL *url.URL, scopeHost string, allowS
 		}
 
 		// Scope check
-		host := parsed.Hostname()
+		host := strings.ToLower(parsed.Hostname())
+		hostRoot := strings.TrimPrefix(host, "www.")
+
 		if allowSubdomains {
-			if host != scopeHost && !strings.HasSuffix(host, "."+scopeHost) {
+			if hostRoot != rootDomain && !strings.HasSuffix(host, "."+rootDomain) {
 				continue
 			}
 		} else {
-			if host != scopeHost {
+			if hostRoot != rootDomain {
 				continue
 			}
 		}
@@ -341,33 +362,21 @@ func Crawl(targetURL string, opts Options) ([]string, error) {
 	var (
 		visitedPages sync.Map
 		discoveredJS sync.Map
-		queue        = make(chan queueItem, opts.MaxPages*5)
-		activeTasks  int32
-		mu           sync.Mutex
-		done         = make(chan struct{})
+		queue        = make(chan queueItem, opts.MaxPages*10+200)
+		wg           sync.WaitGroup
+		pageCount    int32
 	)
 
-	// Enqueue root page
-	visitedPages.Store(targetURL, true)
-	queue <- queueItem{URL: targetURL, Depth: 1}
+	// Clean root domain for scope checking
+	rootDomain := strings.TrimPrefix(strings.ToLower(opts.ScopeHost), "www.")
 
-	var wg sync.WaitGroup
-	workerSem := make(chan struct{}, opts.Concurrency)
-
+	// Launch worker pool
 	for i := 0; i < opts.Concurrency; i++ {
-		wg.Add(1)
 		go func() {
-			defer wg.Done()
-			for {
-				select {
-				case <-done:
-					return
-				case item, ok := <-queue:
-					if !ok {
-						return
-					}
+			for item := range queue {
+				func() {
+					defer wg.Done()
 
-					workerSem <- struct{}{}
 					if opts.Delay > 0 {
 						time.Sleep(opts.Delay)
 					}
@@ -377,108 +386,82 @@ func Crawl(targetURL string, opts Options) ([]string, error) {
 					}
 
 					req, err := http.NewRequest("GET", item.URL, nil)
-					if err == nil {
-						ApplyHeaders(req, opts.Cookies, opts.Headers, opts.UserAgent)
-						resp, err := opts.Client.Do(req)
-						if err == nil {
-							defer resp.Body.Close()
+					if err != nil {
+						if opts.Verbose {
+							log.Printf("[CRAWL] Error creating request for %s: %v", item.URL, err)
+						}
+						return
+					}
+					ApplyHeaders(req, opts.Cookies, opts.Headers, opts.UserAgent)
 
-							cType := resp.Header.Get("Content-Type")
-							// Read only if HTML or JavaScript or text
-							if strings.Contains(cType, "html") || strings.Contains(cType, "javascript") || strings.Contains(cType, "text") || cType == "" {
-								bodyBytes, readErr := io.ReadAll(io.LimitReader(resp.Body, 5*1024*1024)) // 5MB limit
-								if readErr == nil {
-									bodyStr := string(bodyBytes)
-									pageURL := resp.Request.URL
-									if pageURL == nil {
-										pageURL = seedParsed
-									}
+					resp, err := opts.Client.Do(req)
+					if err != nil {
+						if opts.Verbose {
+							log.Printf("[CRAWL] Error fetching %s: %v", item.URL, err)
+						}
+						return
+					}
+					defer resp.Body.Close()
 
-									// Extract JS files
-									jsList := ExtractJS(bodyStr, pageURL)
-									for _, jsURL := range jsList {
-										discoveredJS.Store(jsURL, true)
-									}
+					cType := strings.ToLower(resp.Header.Get("Content-Type"))
+					if !strings.Contains(cType, "html") && !strings.Contains(cType, "javascript") && !strings.Contains(cType, "text") && cType != "" {
+						return
+					}
 
-									// Crawl child pages if depth allows
-									if item.Depth < opts.Depth {
-										childLinks := ExtractLinks(bodyStr, pageURL, opts.ScopeHost, opts.Subdomains)
-										for _, link := range childLinks {
-											mu.Lock()
-											count := 0
-											visitedPages.Range(func(_, _ interface{}) bool {
-												count++
-												return true
-											})
-											if count >= opts.MaxPages {
-												mu.Unlock()
-												break
-											}
+					bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, 10*1024*1024))
+					if err != nil {
+						if opts.Verbose {
+							log.Printf("[CRAWL] Error reading body of %s: %v", item.URL, err)
+						}
+						return
+					}
 
-											if _, loaded := visitedPages.LoadOrStore(link, true); !loaded {
-												select {
-												case queue <- queueItem{URL: link, Depth: item.Depth + 1}:
-												default:
-												}
-											}
-											mu.Unlock()
-										}
+					bodyStr := string(bodyBytes)
+					pageURL := resp.Request.URL
+					if pageURL == nil {
+						pageURL = seedParsed
+					}
+
+					// Extract JavaScript references
+					jsList := ExtractJS(bodyStr, pageURL)
+					for _, jsURL := range jsList {
+						discoveredJS.Store(jsURL, true)
+					}
+
+					// Extract child links if depth allows
+					if item.Depth < opts.Depth {
+						links := ExtractLinks(bodyStr, pageURL, rootDomain, opts.Subdomains)
+						for _, link := range links {
+							if atomic.LoadInt32(&pageCount) >= int32(opts.MaxPages) {
+								break
+							}
+
+							if _, loaded := visitedPages.LoadOrStore(link, true); !loaded {
+								if atomic.AddInt32(&pageCount, 1) <= int32(opts.MaxPages) {
+									wg.Add(1)
+									select {
+									case queue <- queueItem{URL: link, Depth: item.Depth + 1}:
+									default:
+										wg.Done()
 									}
 								}
 							}
-						} else if opts.Verbose {
-							log.Printf("[CRAWL] Error fetching %s: %v", item.URL, err)
 						}
 					}
-					<-workerSem
-
-					mu.Lock()
-					activeTasks--
-					if len(queue) == 0 && activeTasks <= 0 {
-						close(done)
-						mu.Unlock()
-						return
-					}
-					mu.Unlock()
-				}
+				}()
 			}
 		}()
 	}
 
-	// Update activeTasks tracking
-	// We can close queue safely by managing lifecycle
-	// Let's monitor queue completion
-	go func() {
-		for {
-			select {
-			case <-done:
-				return
-			default:
-				time.Sleep(100 * time.Millisecond)
-				mu.Lock()
-				count := 0
-				visitedPages.Range(func(_, _ interface{}) bool {
-					count++
-					return true
-				})
-				if len(queue) == 0 || count >= opts.MaxPages {
-					// Check if all workers are idle
-					if len(workerSem) == 0 {
-						select {
-						case <-done:
-						default:
-							close(done)
-						}
-						mu.Unlock()
-						return
-					}
-				}
-				mu.Unlock()
-			}
-		}
-	}()
+	// Enqueue seed URL
+	visitedPages.Store(targetURL, true)
+	atomic.StoreInt32(&pageCount, 1)
+	wg.Add(1)
+	queue <- queueItem{URL: targetURL, Depth: 1}
 
+	// Wait for all crawl tasks to complete
 	wg.Wait()
+	close(queue)
 
 	var jsURLs []string
 	discoveredJS.Range(func(key, _ interface{}) bool {
@@ -488,4 +471,3 @@ func Crawl(targetURL string, opts Options) ([]string, error) {
 
 	return jsURLs, nil
 }
-
