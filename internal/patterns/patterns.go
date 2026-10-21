@@ -1,9 +1,17 @@
 package patterns
 
 import (
+	_ "embed"
+	"fmt"
+	"log"
 	"regexp"
 	"sync"
+
+	"gopkg.in/yaml.v3"
 )
+
+//go:embed default_patterns.yaml
+var DefaultPatternsYAML []byte
 
 var (
 	patternCache = make(map[string]*regexp.Regexp)
@@ -50,8 +58,36 @@ type Config struct {
 	Patterns []PatternConfig `yaml:"patterns"`
 }
 
-// LoadPatterns is just an alias for LoadUserPatterns for backward compatibility
+// LoadDefaultPatterns loads patterns embedded into the binary at compile time.
+func LoadDefaultPatterns(verbose bool) ([]Pattern, error) {
+	var config Config
+	if err := yaml.Unmarshal(DefaultPatternsYAML, &config); err != nil {
+		return nil, fmt.Errorf("failed to parse embedded default patterns: %w", err)
+	}
+
+	var pats []Pattern
+	for _, pc := range config.Patterns {
+		re, err := GetCompiledPattern(pc.Pattern.Regex)
+		if err != nil {
+			if verbose {
+				log.Printf("Invalid regex in embedded pattern %s: %v", pc.Pattern.Name, err)
+			}
+			continue
+		}
+		p := pc.Pattern
+		p.Compiled = re
+		pats = append(pats, p)
+	}
+	return pats, nil
+}
+
+// LoadPatterns is an alias for LoadUserPatterns for backward compatibility.
+// If no user patterns exist, it falls back to embedded default patterns.
 func LoadPatterns(verbose bool) []Pattern {
-	patterns, _ := LoadUserPatterns(verbose)
-	return patterns
+	patterns, err := LoadUserPatterns(verbose)
+	if err == nil && len(patterns) > 0 {
+		return patterns
+	}
+	embedded, _ := LoadDefaultPatterns(verbose)
+	return embedded
 }

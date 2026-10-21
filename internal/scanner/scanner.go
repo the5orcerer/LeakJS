@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,6 +18,8 @@ import (
 	"github.com/schollz/progressbar/v3"
 	"gopkg.in/yaml.v3"
 
+	"github.com/the5orcerer/LeakJS/internal/crawler"
+	"github.com/the5orcerer/LeakJS/internal/extractor"
 	"github.com/the5orcerer/LeakJS/internal/patterns"
 )
 
@@ -28,34 +31,81 @@ var (
 )
 
 type ScanStats struct {
-	FilesScanned int
-	URLsScanned  int
-	TotalMatches int
-	PatternsUsed int
-	ScanDuration time.Duration
+	FilesScanned    int
+	URLsScanned     int
+	TotalMatches    int
+	PatternsUsed    int
+	EndpointsFound  int
+	SourceMapsFound int
+	ScanDuration    time.Duration
 }
 
 type Config struct {
-	Concurrency  int    `yaml:"concurrency"`
-	Output       string `yaml:"output"`
-	Verbose      bool   `yaml:"verbose"`
-	Silent       bool   `yaml:"silent"`
-	JSON         bool   `yaml:"json"`
-	Stats        bool   `yaml:"stats"`
-	PatternsDir  string `yaml:"patterns_dir"`
-	PatternsFile string `yaml:"patterns_file"`
-	Exclude      string `yaml:"exclude"`
-	Include      string `yaml:"include"` // New field for pattern shortcuts
+	Concurrency  int      `yaml:"concurrency"`
+	Output       string   `yaml:"output"`
+	Verbose      bool     `yaml:"verbose"`
+	Silent       bool     `yaml:"silent"`
+	JSON         bool     `yaml:"json"`
+	Stats        bool     `yaml:"stats"`
+	PatternsDir  string   `yaml:"patterns_dir"`
+	PatternsFile string   `yaml:"patterns_file"`
+	Exclude      string   `yaml:"exclude"`
+	Include      string   `yaml:"include"`
+	Cookies      string   `yaml:"cookies"`
+	Headers      []string `yaml:"headers"`
+	UserAgent    string   `yaml:"user_agent"`
+	Proxy        string   `yaml:"proxy"`
+	Insecure     bool     `yaml:"insecure"`
+	Timeout      int      `yaml:"timeout"`
+	Delay        int      `yaml:"delay"`
+	Depth        int      `yaml:"depth"`
+	MaxPages     int      `yaml:"max_pages"`
+	Subdomains   bool     `yaml:"subdomains"`
+	Endpoints    bool     `yaml:"endpoints"`
+	SourceMaps   bool     `yaml:"sourcemaps"`
+}
+
+type ScanOptions struct {
+	URLsFile             string
+	SingleURL            string
+	PatternsFile         string
+	DirectPatterns       string
+	FilePath             string
+	Dir                  string
+	AllDir               string
+	ConfigFile           string
+	ExcludePatterns      string
+	OutputFile           string
+	Concurrency          int
+	Verbose              bool
+	Silent               bool
+	JSON                 bool
+	Stats                bool
+	BenchmarkIterations  int
+	HighOnly             bool
+	Cookies              string
+	Headers              []string
+	Proxy                string
+	Insecure             bool
+	Timeout              int
+	Delay                int
+	UserAgent            string
+	Crawl                bool
+	CrawlOnly            bool
+	Depth                int
+	MaxPages             int
+	Subdomains           bool
+	Endpoints            bool
+	SourceMaps           bool
+	ScanStats            *ScanStats
 }
 
 // FilterPatterns applies both include and exclude filters to the pattern list
 func FilterPatterns(pats []patterns.Pattern, includeList, excludeList string) []patterns.Pattern {
-	// If neither include nor exclude is specified, return all patterns
 	if includeList == "" && excludeList == "" {
 		return pats
 	}
 
-	// Create include and exclude maps
 	included := make(map[string]bool)
 	if includeList != "" {
 		for _, name := range strings.Split(includeList, ",") {
@@ -72,14 +122,9 @@ func FilterPatterns(pats []patterns.Pattern, includeList, excludeList string) []
 
 	var filtered []patterns.Pattern
 	for _, pattern := range pats {
-		// Skip if explicitly excluded
 		if excluded[pattern.Name] {
 			continue
 		}
-
-		// Include if either:
-		// 1. No include list specified (include all)
-		// 2. Pattern name is in the include list
 		if includeList == "" || included[pattern.Name] {
 			filtered = append(filtered, pattern)
 		}
@@ -92,18 +137,14 @@ func LoadConfig(configFile string) (*Config, error) {
 	var configPath string
 
 	if configFile != "" {
-		// Use explicitly provided config file
 		configPath = configFile
 	} else {
-		// Check default locations in order of preference
 		homeDir, err := os.UserHomeDir()
 		if err == nil {
-			// Check ~/.config/leakjs/config.yaml
 			candidatePath := filepath.Join(homeDir, ".config", "leakjs", "config.yaml")
 			if _, err := os.Stat(candidatePath); err == nil {
 				configPath = candidatePath
 			} else {
-				// Check ~/.leakjs/config.yaml (fallback)
 				candidatePath = filepath.Join(homeDir, ".leakjs", "config.yaml")
 				if _, err := os.Stat(candidatePath); err == nil {
 					configPath = candidatePath
@@ -112,7 +153,6 @@ func LoadConfig(configFile string) (*Config, error) {
 		}
 	}
 
-	// If no config file found, return default config
 	if configPath == "" {
 		return &Config{}, nil
 	}
@@ -136,11 +176,17 @@ func (s *ScanStats) Print() {
 	fmt.Printf("Files scanned: %d\n", s.FilesScanned)
 	fmt.Printf("URLs scanned: %d\n", s.URLsScanned)
 	fmt.Printf("Total matches found: %d\n", s.TotalMatches)
+	if s.EndpointsFound > 0 {
+		fmt.Printf("Endpoints found: %d\n", s.EndpointsFound)
+	}
+	if s.SourceMapsFound > 0 {
+		fmt.Printf("Source maps found: %d\n", s.SourceMapsFound)
+	}
 	fmt.Printf("Patterns used: %d\n", s.PatternsUsed)
 	fmt.Printf("Scan duration: %v\n", s.ScanDuration)
 }
 
-func ReadURLs(filePath string) ([]string, error) {
+func ReadURLs(filePath string, allowAllURLs bool) ([]string, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
@@ -151,11 +197,36 @@ func ReadURLs(filePath string) ([]string, error) {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		if line != "" && strings.HasSuffix(line, ".js") {
+		if line == "" {
+			continue
+		}
+		if allowAllURLs {
 			urls = append(urls, line)
+		} else {
+			// Check if URL or path indicates a JS file (even with query params)
+			u, err := url.Parse(line)
+			if err == nil && (strings.HasSuffix(strings.ToLower(u.Path), ".js") || strings.Contains(strings.ToLower(line), ".js")) {
+				urls = append(urls, line)
+			} else if strings.HasSuffix(strings.ToLower(line), ".js") {
+				urls = append(urls, line)
+			}
 		}
 	}
 	return urls, scanner.Err()
+}
+
+func FindJSFilesInDir(dirPath string) ([]string, error) {
+	var files []string
+	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && strings.HasSuffix(strings.ToLower(info.Name()), ".js") {
+			files = append(files, path)
+		}
+		return nil
+	})
+	return files, err
 }
 
 func ReadPatterns(yamlFile string, verbose bool) ([]patterns.Pattern, error) {
@@ -189,7 +260,6 @@ func ReadPatterns(yamlFile string, verbose bool) ([]patterns.Pattern, error) {
 func ReadAllPatternsFromDir(dirPath string, verbose bool) ([]patterns.Pattern, error) {
 	var allPats []patterns.Pattern
 
-	// Read patterns from filesystem
 	if _, err := os.Stat(dirPath); err != nil {
 		return nil, fmt.Errorf("pattern directory not found: %s", dirPath)
 	}
@@ -199,14 +269,13 @@ func ReadAllPatternsFromDir(dirPath string, verbose bool) ([]patterns.Pattern, e
 			return err
 		}
 
-		// Only process YAML files
-		if !info.IsDir() && strings.HasSuffix(strings.ToLower(path), ".yaml") {
+		if !info.IsDir() && (strings.HasSuffix(strings.ToLower(path), ".yaml") || strings.HasSuffix(strings.ToLower(path), ".yml")) {
 			pats, err := ReadPatterns(path, verbose)
 			if err != nil {
 				if verbose {
 					log.Printf("Error reading patterns from %s: %v", path, err)
 				}
-				return nil // Continue with other files
+				return nil
 			}
 			allPats = append(allPats, pats...)
 		}
@@ -259,7 +328,6 @@ func ReadFileContent(filePath string) (string, error) {
 func SearchPatterns(content string, pats []patterns.Pattern, highOnly bool) map[string]map[string]interface{} {
 	results := make(map[string]map[string]interface{})
 	for _, pattern := range pats {
-		// Skip non-High confidence patterns if highOnly is enabled
 		if highOnly && pattern.Confidence != "High" {
 			continue
 		}
@@ -284,10 +352,9 @@ func DisplayResults(source string, results map[string]map[string]interface{}, so
 			matches := data["matches"].([]string)
 			confidence := data["confidence"].(string)
 			if len(matches) > 0 {
-				// Truncate long matches for display
 				match := matches[0]
-				if len(match) > 50 {
-					match = match[:47] + "..."
+				if len(match) > 60 {
+					match = match[:57] + "..."
 				}
 				green.Printf("%s [%s] [%s] [%s]\n", source, match, confidence, patternName)
 			}
@@ -321,16 +388,66 @@ func SaveResultsToFile(outputFile, source string, results map[string]map[string]
 	return nil
 }
 
-func FetchURLContent(url string, client *http.Client) (string, error) {
+func DisplayEndpoints(source string, endpoints []string, isJSON bool) {
+	if isJSON {
+		data := map[string]interface{}{
+			"source":    source,
+			"endpoints": endpoints,
+		}
+		if b, err := json.MarshalIndent(data, "", "  "); err == nil {
+			fmt.Println(string(b))
+		}
+		return
+	}
+	for _, ep := range endpoints {
+		blue.Printf("[ENDPOINT] %s -> %s\n", source, ep)
+	}
+}
+
+func SaveEndpointsToFile(outputFile, source string, endpoints []string) error {
+	file, err := os.OpenFile(outputFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	for _, ep := range endpoints {
+		fmt.Fprintf(file, "[ENDPOINT] %s -> %s\n", source, ep)
+	}
+	return nil
+}
+
+func DisplaySourceMap(source, mapURL string, isJSON bool) {
+	if isJSON {
+		data := map[string]interface{}{
+			"source":    source,
+			"sourcemap": mapURL,
+		}
+		if b, err := json.MarshalIndent(data, "", "  "); err == nil {
+			fmt.Println(string(b))
+		}
+		return
+	}
+	yellow.Printf("[MAP] %s -> Exposed source map: %s\n", source, mapURL)
+}
+
+func SaveSourceMapToFile(outputFile, source, mapURL string) error {
+	file, err := os.OpenFile(outputFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	fmt.Fprintf(file, "[MAP] %s -> Exposed source map: %s\n", source, mapURL)
+	return nil
+}
+
+func FetchURLContent(url string, client *http.Client, cookies string, headers []string, userAgent string) (string, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
-	req.Header.Set("Connection", "keep-alive")
-	req.Header.Set("Upgrade-Insecure-Requests", "1")
+	crawler.ApplyHeaders(req, cookies, headers, userAgent)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -349,15 +466,16 @@ func FetchURLContent(url string, client *http.Client) (string, error) {
 	return string(body), nil
 }
 
-func ProcessURL(url string, pats []patterns.Pattern, client *http.Client, outputFile string, verbose, silent, json bool, wg *sync.WaitGroup, mu *sync.Mutex, stats *ScanStats, highOnly bool) {
+func ProcessURL(url string, pats []patterns.Pattern, client *http.Client, cookies string, headers []string, userAgent string, outputFile string, verbose, silent, json bool, wg *sync.WaitGroup, mu *sync.Mutex, stats *ScanStats, highOnly, findEndpoints, findSourceMaps bool) {
 	defer wg.Done()
-	content, err := FetchURLContent(url, client)
+	content, err := FetchURLContent(url, client, cookies, headers, userAgent)
 	if err != nil {
 		if verbose {
 			log.Printf("Error fetching URL %s: %v", url, err)
 		}
 		return
 	}
+
 	results := SearchPatterns(content, pats, highOnly)
 	if len(results) > 0 {
 		mu.Lock()
@@ -370,9 +488,38 @@ func ProcessURL(url string, pats []patterns.Pattern, client *http.Client, output
 		}
 		mu.Unlock()
 	}
+
+	if findEndpoints {
+		endpoints := extractor.ExtractEndpoints(content)
+		if len(endpoints) > 0 {
+			mu.Lock()
+			stats.EndpointsFound += len(endpoints)
+			if outputFile != "" {
+				SaveEndpointsToFile(outputFile, url, endpoints)
+			}
+			if !silent {
+				DisplayEndpoints(url, endpoints, json)
+			}
+			mu.Unlock()
+		}
+	}
+
+	if findSourceMaps {
+		if mapURL, leaked := extractor.CheckSourceMap(url, content, client, cookies, headers); leaked {
+			mu.Lock()
+			stats.SourceMapsFound++
+			if outputFile != "" {
+				SaveSourceMapToFile(outputFile, url, mapURL)
+			}
+			if !silent {
+				DisplaySourceMap(url, mapURL, json)
+			}
+			mu.Unlock()
+		}
+	}
 }
 
-func ProcessFile(filePath string, pats []patterns.Pattern, outputFile string, verbose, silent, json bool, wg *sync.WaitGroup, mu *sync.Mutex, stats *ScanStats, highOnly bool) {
+func ProcessFile(filePath string, pats []patterns.Pattern, outputFile string, verbose, silent, json bool, wg *sync.WaitGroup, mu *sync.Mutex, stats *ScanStats, highOnly, findEndpoints bool) {
 	defer wg.Done()
 	content, err := ReadFileContent(filePath)
 	if err != nil {
@@ -393,121 +540,304 @@ func ProcessFile(filePath string, pats []patterns.Pattern, outputFile string, ve
 		}
 		mu.Unlock()
 	}
+
+	if findEndpoints {
+		endpoints := extractor.ExtractEndpoints(content)
+		if len(endpoints) > 0 {
+			mu.Lock()
+			stats.EndpointsFound += len(endpoints)
+			if outputFile != "" {
+				SaveEndpointsToFile(outputFile, filePath, endpoints)
+			}
+			if !silent {
+				DisplayEndpoints(filePath, endpoints, json)
+			}
+			mu.Unlock()
+		}
+	}
 }
 
-func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allDir, configFile, excludePatterns, outputFile string, concurrency int, verbose, silent, json, showStats bool, benchmarkIterations int, highOnly bool, stats *ScanStats) error {
-	if benchmarkIterations > 0 {
-		return RunBenchmark(urlsFile, singleURL, patternsFile, directPatterns, filePath, allDir, configFile, excludePatterns, outputFile, concurrency, verbose, silent, json, benchmarkIterations, highOnly)
+// Run executes a scan with the given ScanOptions
+func Run(opts ScanOptions) error {
+	if opts.BenchmarkIterations > 0 {
+		return RunBenchmark(opts)
 	}
 
 	start := time.Now()
 	defer func() {
-		if showStats {
-			stats.ScanDuration = time.Since(start)
-			stats.Print()
+		if opts.Stats && opts.ScanStats != nil {
+			opts.ScanStats.ScanDuration = time.Since(start)
+			opts.ScanStats.Print()
 		}
 	}()
 
-	// Load configuration file if provided
-	config, err := LoadConfig(configFile)
+	// Load configuration file if provided or discovered
+	config, err := LoadConfig(opts.ConfigFile)
 	if err != nil {
 		return fmt.Errorf("error loading config file: %v", err)
 	}
 
-	// Override config with command-line arguments if provided
-	if concurrency == 20 && config.Concurrency > 0 {
-		concurrency = config.Concurrency
+	// Apply config overrides if command-line flags were left default
+	if opts.Concurrency <= 0 {
+		if config.Concurrency > 0 {
+			opts.Concurrency = config.Concurrency
+		} else {
+			opts.Concurrency = 20
+		}
 	}
-	if outputFile == "" && config.Output != "" {
-		outputFile = config.Output
+	if opts.OutputFile == "" && config.Output != "" {
+		opts.OutputFile = config.Output
 	}
-	// Note: verbose is not overridden by config as it's a user display preference
-	if !silent && config.Silent {
-		silent = config.Silent
+	if !opts.Silent && config.Silent {
+		opts.Silent = config.Silent
 	}
-	if !json && config.JSON {
-		json = config.JSON
+	if !opts.JSON && config.JSON {
+		opts.JSON = config.JSON
 	}
-	if !showStats && config.Stats {
-		showStats = config.Stats
+	if !opts.Stats && config.Stats {
+		opts.Stats = config.Stats
 	}
-	if allDir == "" && config.PatternsDir != "" {
-		allDir = config.PatternsDir
+	if opts.AllDir == "" && config.PatternsDir != "" {
+		opts.AllDir = config.PatternsDir
 	}
-	if patternsFile == "" && config.PatternsFile != "" {
-		patternsFile = config.PatternsFile
+	if opts.PatternsFile == "" && config.PatternsFile != "" {
+		opts.PatternsFile = config.PatternsFile
 	}
-	if excludePatterns == "" && config.Exclude != "" {
-		excludePatterns = config.Exclude
+	if opts.ExcludePatterns == "" && config.Exclude != "" {
+		opts.ExcludePatterns = config.Exclude
+	}
+	if opts.Cookies == "" && config.Cookies != "" {
+		opts.Cookies = config.Cookies
+	}
+	if len(opts.Headers) == 0 && len(config.Headers) > 0 {
+		opts.Headers = config.Headers
+	}
+	if opts.UserAgent == "" && config.UserAgent != "" {
+		opts.UserAgent = config.UserAgent
+	}
+	if opts.Proxy == "" && config.Proxy != "" {
+		opts.Proxy = config.Proxy
+	}
+	if !opts.Insecure && config.Insecure {
+		opts.Insecure = config.Insecure
+	}
+	if opts.Timeout == 0 && config.Timeout > 0 {
+		opts.Timeout = config.Timeout
+	}
+	if opts.Delay == 0 && config.Delay > 0 {
+		opts.Delay = config.Delay
+	}
+	if opts.Depth == 0 {
+		if config.Depth > 0 {
+			opts.Depth = config.Depth
+		} else {
+			opts.Depth = 2
+		}
+	}
+	if opts.MaxPages == 0 {
+		if config.MaxPages > 0 {
+			opts.MaxPages = config.MaxPages
+		} else {
+			opts.MaxPages = 50
+		}
+	}
+	if !opts.Subdomains && config.Subdomains {
+		opts.Subdomains = config.Subdomains
+	}
+	if !opts.Endpoints && config.Endpoints {
+		opts.Endpoints = config.Endpoints
+	}
+	if !opts.SourceMaps && config.SourceMaps {
+		opts.SourceMaps = config.SourceMaps
 	}
 
+	timeout := time.Duration(opts.Timeout) * time.Second
+	if timeout <= 0 {
+		timeout = 15 * time.Second
+	}
+	client, err := crawler.BuildHTTPClient(timeout, opts.Proxy, opts.Insecure)
+	if err != nil {
+		return fmt.Errorf("error setting up HTTP client: %w", err)
+	}
+
+	// Handle Crawl Mode
+	var crawledJS []string
+	if opts.Crawl {
+		var seedURLs []string
+		if opts.SingleURL != "" {
+			seedURLs = append(seedURLs, opts.SingleURL)
+		}
+		if opts.URLsFile != "" {
+			targets, err := ReadURLs(opts.URLsFile, true)
+			if err != nil {
+				return err
+			}
+			seedURLs = append(seedURLs, targets...)
+		}
+
+		if len(seedURLs) == 0 {
+			return fmt.Errorf("crawl mode requires a URL (-u) or URL list (-l)")
+		}
+
+		crawlOpts := crawler.Options{
+			Depth:       opts.Depth,
+			MaxPages:    opts.MaxPages,
+			Concurrency: opts.Concurrency,
+			Delay:       time.Duration(opts.Delay) * time.Millisecond,
+			Subdomains:  opts.Subdomains,
+			Client:      client,
+			Headers:     opts.Headers,
+			Cookies:     opts.Cookies,
+			UserAgent:   opts.UserAgent,
+			Verbose:     opts.Verbose,
+			Silent:      opts.Silent,
+		}
+
+		discoveredMap := make(map[string]bool)
+		for _, seed := range seedURLs {
+			if !opts.Silent {
+				blue.Printf("[INF] Crawling %s (depth=%d, max_pages=%d)...\n", seed, opts.Depth, opts.MaxPages)
+			}
+			jsList, err := crawler.Crawl(seed, crawlOpts)
+			if err != nil {
+				if opts.Verbose {
+					log.Printf("Error crawling %s: %v", seed, err)
+				}
+				continue
+			}
+			for _, js := range jsList {
+				if !discoveredMap[js] {
+					discoveredMap[js] = true
+					crawledJS = append(crawledJS, js)
+				}
+			}
+		}
+
+		if !opts.Silent {
+			green.Printf("[INF] Crawl completed: gathered %d unique JavaScript URLs.\n\n", len(crawledJS))
+		}
+
+		if opts.CrawlOnly {
+			if opts.OutputFile != "" {
+				file, err := os.Create(opts.OutputFile)
+				if err != nil {
+					return fmt.Errorf("error creating output file: %w", err)
+				}
+				defer file.Close()
+				for _, jsURL := range crawledJS {
+					fmt.Fprintln(file, jsURL)
+				}
+				if !opts.Silent {
+					blue.Printf("[INF] Gathered %d JS URLs saved to %s\n", len(crawledJS), opts.OutputFile)
+				}
+			}
+			if !opts.Silent || opts.OutputFile == "" {
+				for _, jsURL := range crawledJS {
+					fmt.Println(jsURL)
+				}
+			}
+			return nil
+		}
+	}
+
+	// Handle Pattern Loading
 	var pats []patterns.Pattern
-
-	// Handle pattern loading
-	if allDir != "" {
-		// Load all patterns from directory
-		dirPats, err := ReadAllPatternsFromDir(allDir, verbose)
+	if opts.AllDir != "" {
+		dirPats, err := ReadAllPatternsFromDir(opts.AllDir, opts.Verbose)
 		if err != nil {
-			return fmt.Errorf("error loading patterns from directory %s: %v", allDir, err)
+			return fmt.Errorf("error loading patterns from directory %s: %v", opts.AllDir, err)
 		}
 		pats = dirPats
-	} else if patternsFile != "" {
-		// Use only patterns from the specified file
-		filePats, err := ReadPatterns(patternsFile, verbose)
+	} else if opts.PatternsFile != "" {
+		filePats, err := ReadPatterns(opts.PatternsFile, opts.Verbose)
 		if err != nil {
 			return err
 		}
 		pats = filePats
-	} else if directPatterns != "" {
-		// Use direct patterns if provided
-		directPats, err := ParseDirectPatterns(directPatterns, verbose)
+	} else if opts.DirectPatterns != "" {
+		directPats, err := ParseDirectPatterns(opts.DirectPatterns, opts.Verbose)
 		if err != nil {
 			return err
 		}
 		pats = directPats
 	} else {
-		// No patterns specified
-		return fmt.Errorf("no patterns specified. Use -p to specify a pattern file, --all-dir for a directory of patterns, or provide direct patterns")
+		// Auto-discovery fallback:
+		// 1. Check user patterns directory ~/.config/leakjs/patterns
+		userPats, _ := patterns.LoadUserPatterns(opts.Verbose)
+		if len(userPats) > 0 {
+			pats = userPats
+		} else {
+			// 2. Fall back to embedded comprehensive patterns
+			embeddedPats, err := patterns.LoadDefaultPatterns(opts.Verbose)
+			if err != nil {
+				return fmt.Errorf("no patterns specified and failed to load embedded patterns: %v", err)
+			}
+			pats = embeddedPats
+		}
 	}
 
-	// We already handled directPatterns above, no need to append again
-
-	// Filter out excluded patterns
-	if excludePatterns != "" {
-		pats = FilterPatterns(pats, config.Include, excludePatterns)
+	// Filter excluded/included patterns
+	if opts.ExcludePatterns != "" || config.Include != "" {
+		pats = FilterPatterns(pats, config.Include, opts.ExcludePatterns)
 	}
 
-	stats.PatternsUsed = len(pats)
-	blue.Printf("[INF] Templates loaded: %d\n\n", len(pats))
+	if opts.ScanStats != nil {
+		opts.ScanStats.PatternsUsed = len(pats)
+	}
+	if !opts.Silent {
+		blue.Printf("[INF] Templates loaded: %d\n\n", len(pats))
+	}
 
+	// Gather sources to scan
 	var sources []string
-	if urlsFile != "" {
-		urls, err := ReadURLs(urlsFile)
+	if opts.Crawl {
+		sources = append(sources, crawledJS...)
+		if opts.ScanStats != nil {
+			opts.ScanStats.URLsScanned += len(crawledJS)
+		}
+	} else if opts.URLsFile != "" {
+		urls, err := ReadURLs(opts.URLsFile, false)
 		if err != nil {
 			return err
 		}
 		sources = urls
-		stats.URLsScanned = len(urls)
-	} else if singleURL != "" {
-		sources = []string{singleURL}
-		stats.URLsScanned = 1
-	} else if filePath != "" {
-		sources = []string{filePath}
-		stats.FilesScanned = 1
+		if opts.ScanStats != nil {
+			opts.ScanStats.URLsScanned = len(urls)
+		}
+	} else if opts.SingleURL != "" {
+		sources = []string{opts.SingleURL}
+		if opts.ScanStats != nil {
+			opts.ScanStats.URLsScanned = 1
+		}
+	} else if opts.FilePath != "" {
+		sources = []string{opts.FilePath}
+		if opts.ScanStats != nil {
+			opts.ScanStats.FilesScanned = 1
+		}
+	} else if opts.Dir != "" {
+		files, err := FindJSFilesInDir(opts.Dir)
+		if err != nil {
+			return fmt.Errorf("error reading directory %s: %w", opts.Dir, err)
+		}
+		sources = files
+		if opts.ScanStats != nil {
+			opts.ScanStats.FilesScanned = len(files)
+		}
 	} else {
 		// Read from stdin
 		scanner := bufio.NewScanner(os.Stdin)
 		for scanner.Scan() {
 			line := strings.TrimSpace(scanner.Text())
-			if line != "" && strings.HasSuffix(line, ".js") {
+			if line != "" {
 				sources = append(sources, line)
 			}
 		}
 		if err := scanner.Err(); err != nil {
 			return err
 		}
-		// Assume all from stdin are URLs for simplicity
-		stats.URLsScanned = len(sources)
+		if opts.ScanStats != nil {
+			opts.ScanStats.URLsScanned = len(sources)
+		}
 	}
 
 	if len(sources) == 0 {
@@ -515,29 +845,36 @@ func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allD
 		return nil
 	}
 
-	if silent && outputFile == "" {
+	if opts.Silent && opts.OutputFile == "" {
 		red.Println("[ERR] Output file must be specified in silent mode (-s)")
 		return nil
 	}
 
-	client := &http.Client{}
 	var wg sync.WaitGroup
 	var mu sync.Mutex
+	sem := make(chan struct{}, opts.Concurrency)
 
-	sem := make(chan struct{}, concurrency)
+	delay := time.Duration(opts.Delay) * time.Millisecond
 
-	if silent {
+	scanWorker := func(src string) {
+		sem <- struct{}{}
+		defer func() { <-sem }()
+		if delay > 0 {
+			time.Sleep(delay)
+		}
+		if strings.HasPrefix(src, "http") {
+			ProcessURL(src, pats, client, opts.Cookies, opts.Headers, opts.UserAgent, opts.OutputFile, opts.Verbose, opts.Silent, opts.JSON, &wg, &mu, opts.ScanStats, opts.HighOnly, opts.Endpoints, opts.SourceMaps)
+		} else {
+			ProcessFile(src, pats, opts.OutputFile, opts.Verbose, opts.Silent, opts.JSON, &wg, &mu, opts.ScanStats, opts.HighOnly, opts.Endpoints)
+		}
+	}
+
+	if opts.Silent {
 		bar := progressbar.Default(int64(len(sources)))
 		for _, source := range sources {
 			wg.Add(1)
 			go func(src string) {
-				sem <- struct{}{}
-				defer func() { <-sem }()
-				if strings.HasPrefix(src, "http") {
-					ProcessURL(src, pats, client, outputFile, verbose, silent, json, &wg, &mu, stats, highOnly)
-				} else {
-					ProcessFile(src, pats, outputFile, verbose, silent, json, &wg, &mu, stats, highOnly)
-				}
+				scanWorker(src)
 				bar.Add(1)
 			}(source)
 		}
@@ -545,13 +882,7 @@ func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allD
 		for _, source := range sources {
 			wg.Add(1)
 			go func(src string) {
-				sem <- struct{}{}
-				defer func() { <-sem }()
-				if strings.HasPrefix(src, "http") {
-					ProcessURL(src, pats, client, outputFile, verbose, silent, json, &wg, &mu, stats, highOnly)
-				} else {
-					ProcessFile(src, pats, outputFile, verbose, silent, json, &wg, &mu, stats, highOnly)
-				}
+				scanWorker(src)
 			}(source)
 		}
 	}
@@ -560,32 +891,61 @@ func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allD
 	return nil
 }
 
-func RunBenchmark(urlsFile, singleURL, patternsFile, directPatterns, filePath, allDir, configFile, excludePatterns, outputFile string, concurrency int, verbose, silent, json bool, benchmarkIterations int, highOnly bool) error {
-	blue.Printf("[INF] Running benchmark with %d iterations...\n", benchmarkIterations)
+// RunLeakJS provides backwards compatibility for existing callers
+func RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allDir, configFile, excludePatterns, outputFile string, concurrency int, verbose, silent, json, showStats bool, benchmarkIterations int, highOnly bool, stats *ScanStats) error {
+	opts := ScanOptions{
+		URLsFile:            urlsFile,
+		SingleURL:           singleURL,
+		PatternsFile:        patternsFile,
+		DirectPatterns:      directPatterns,
+		FilePath:            filePath,
+		AllDir:              allDir,
+		ConfigFile:          configFile,
+		ExcludePatterns:     excludePatterns,
+		OutputFile:          outputFile,
+		Concurrency:         concurrency,
+		Verbose:             verbose,
+		Silent:              silent,
+		JSON:                json,
+		Stats:               showStats,
+		BenchmarkIterations: benchmarkIterations,
+		HighOnly:            highOnly,
+		ScanStats:           stats,
+	}
+	return Run(opts)
+}
+
+func RunBenchmark(opts ScanOptions) error {
+	blue.Printf("[INF] Running benchmark with %d iterations...\n", opts.BenchmarkIterations)
 
 	var totalDuration time.Duration
 	var totalMatches int
 
-	for i := 0; i < benchmarkIterations; i++ {
-		yellow.Printf("[BENCH] Iteration %d/%d\n", i+1, benchmarkIterations)
+	iters := opts.BenchmarkIterations
+	opts.BenchmarkIterations = 0 // prevent recursion
+	opts.Silent = true
 
-		stats := &ScanStats{}
+	for i := 0; i < iters; i++ {
+		yellow.Printf("[BENCH] Iteration %d/%d\n", i+1, iters)
+
+		iterStats := &ScanStats{}
+		opts.ScanStats = iterStats
 		start := time.Now()
 
-		err := RunLeakJS(urlsFile, singleURL, patternsFile, directPatterns, filePath, allDir, configFile, excludePatterns, outputFile, concurrency, verbose, true, json, false, 0, highOnly, stats)
+		err := Run(opts)
 		if err != nil {
 			return fmt.Errorf("benchmark iteration %d failed: %v", i+1, err)
 		}
 
 		duration := time.Since(start)
 		totalDuration += duration
-		totalMatches += stats.TotalMatches
+		totalMatches += iterStats.TotalMatches
 
-		fmt.Printf("Iteration %d: %v, %d matches\n", i+1, duration, stats.TotalMatches)
+		fmt.Printf("Iteration %d: %v, %d matches\n", i+1, duration, iterStats.TotalMatches)
 	}
 
-	avgDuration := totalDuration / time.Duration(benchmarkIterations)
-	avgMatches := totalMatches / benchmarkIterations
+	avgDuration := totalDuration / time.Duration(iters)
+	avgMatches := totalMatches / iters
 
 	blue.Printf("\n[BENCH] Benchmark completed!\n")
 	fmt.Printf("Average scan time: %v\n", avgDuration)

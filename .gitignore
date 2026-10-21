@@ -1,0 +1,25 @@
+# Binaries
+leakjs
+leakjs-*
+*.exe
+*.test
+*.out
+
+# Go build cache and tools
+dist/
+bin/
+build/
+
+# Output and temp files
+results.txt
+output.txt
+urls.txt
+*.log
+
+# OS and Editor files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+

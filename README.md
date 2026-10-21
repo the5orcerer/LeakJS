@@ -1,332 +1,258 @@
-
 # LeakJS
 
 ![Go](https://img.shields.io/badge/go-1.18%2B-blue) ![Issues](https://img.shields.io/github/issues/the5orcerer/LeakJS) ![Forks](https://img.shields.io/github/forks/the5orcerer/LeakJS) ![Stars](https://img.shields.io/github/stars/the5orcerer/LeakJS)
 
 ## Getting Started
 
-**LeakJS** is a robust tool designed to scan JavaScript files and URLs for predefined patterns, aiding in the identification of potential leaks and vulnerabilities. Leveraging Go's goroutines, it ensures fast and efficient scanning. Users can define custom patterns in YAML files for tailored scans. Detailed logging and comprehensive configuration options make LeakJS a versatile solution for securing JavaScript code.
+**LeakJS** is a high-performance reconnaissance and security tool designed to crawl websites, discover JavaScript files, and scan them for sensitive data leaks (API keys, tokens, credentials, secrets, endpoints, and exposed source maps). Leveraging Go's goroutines, it delivers blazingly fast scanning, crawling, and analysis.
+
+---
 
 ## 🚀 Key Features
 
-- **Concurrent Scanning**: Fast and efficient scanning using Go goroutines.
-- **Custom Patterns**: Define your own patterns in YAML files.
-- **High Performance**: Pre-compiled regexes and optimized concurrency.
-- **Multiple Output Formats**: Text and JSON output options.
-- **Detailed Logging**: Comprehensive logging for debugging and analysis.
-- **Configurable**: Easily configure headers, patterns, and more.
-- **Portable & Self-Contained**: Embedded regex patterns and automatic config discovery.
-- **Cross-Platform**: Automated releases for Linux, macOS, and Windows.
+- **Built-in Web Crawler**: Spider entire websites to discover all JavaScript URLs (`<script src>`, `<link rel="preload">`, inline scripts, dynamic imports, webpack chunks).
+- **Crawl-Only Mode**: Gather all JS URLs from a site and export them directly to files or stdout for piping into other tools.
+- **Authenticated Requests**: Attach custom session cookies (`--cookie`) and custom HTTP headers (`-H`) across both crawling and scanning.
+- **API Endpoint & Route Discovery**: Extract REST routes, API endpoints, GraphQL paths, and internal URLs (`-E / --endpoints`).
+- **Source Map Detection**: Check for exposed JavaScript source maps (`-m / --sourcemaps`) to uncover original source code.
+- **Proxy & TLS Support**: Route traffic through proxies like Burp Suite / OWASP ZAP (`--proxy`) with TLS verification bypass (`-k / --insecure`).
+- **Local Directory Scanning**: Recursively scan entire directories of downloaded JS files (`-d / --dir`).
+- **Embedded Regex Patterns**: 170+ high-confidence patterns embedded directly in the binary—works out-of-the-box with zero setup.
+- **High Concurrency & Rate Limiting**: Fine-grained concurrency (`-C`) and request delay (`--delay`) to control speed and avoid WAF bans.
 
-## 🔄 Portability & Self-Contained Design
+---
 
-LeakJS is designed to be completely portable and self-contained, requiring no external files or dependencies to function.
-
-### Embedded Regex Patterns
-- **Zero External Dependencies**: All regex patterns are embedded directly in the binary at compile time
-- **Automatic Fallback**: If custom pattern directories are not found, LeakJS automatically uses embedded patterns
-- **Always Available**: Over 500+ built-in patterns covering APIs, tokens, keys, and sensitive data
-- **Customizable**: Still supports loading additional patterns from external YAML files when available
-
-### Automatic Configuration Discovery
-- **Standard Locations**: Automatically discovers config files in `~/.config/leakjs/config.yaml` or `~/.leakjs/config.yaml`
-- **No Config Required**: Works out-of-the-box with sensible defaults
-- **Override Support**: Command-line flags still take precedence over config files
-
-### Portable Binary
-- **Single Executable**: Move the binary anywhere - it works without needing the source directory
-- **Cross-Platform Releases**: Automated GitHub releases provide binaries for all major platforms
-- **No Installation Required**: Download and run immediately
 ## 📥 Installation
 
-### Option 1: Download Pre-built Binaries (Recommended)
-
-Visit the [Releases](https://github.com/the5orcerer/LeakJS/releases) page and download the appropriate binary for your platform:
-
-- **Linux**: `leakjs-linux-amd64` or `leakjs-linux-arm64`
-- **macOS**: `leakjs-macos-amd64` or `leakjs-macos-arm64`
-- **Windows**: `leakjs-windows-amd64.exe` or `leakjs-windows-arm64.exe`
-
-Make the binary executable and move it to your PATH:
-```bash
-chmod +x leakjs-linux-amd64
-sudo mv leakjs-linux-amd64 /usr/local/bin/leakjs
-```
-
-### Option 2: Build from Source
-
-To install LeakJS, follow these steps:
+### Option 1: Build from Source (Recommended)
 
 ```bash
 git clone https://github.com/the5orcerer/LeakJS
 cd LeakJS
 make build
 sudo make install
-leakjs -h (For testing purpose)
 ```
 
 Or using Go directly:
 
 ```bash
-go build -o leakjs main.go
+go build -o leakjs ./cmd/leakjs
 sudo mv leakjs /usr/local/bin/
 ```
 
-## 🛠️ Usage
+### Option 2: Pre-built Binaries
 
-LeakJS can be used as a command-line tool to scan JavaScript files and URLs for patterns.
+Download pre-compiled binaries for Linux, macOS, or Windows from the [Releases](https://github.com/the5orcerer/LeakJS/releases) page.
 
-### Scan a Single URL
+---
 
-```bash
-leakjs -u "https://example.com/script.js" -p patterns.yaml -c 5 -o results.txt
+## 🛠️ Usage & Examples
 
-[ INF ] Current version v1.2.4 [updated]
-[ INF ] Templates loaded: 6
+### 1. Embedded Patterns Out-of-the-Box Scan
 
-[ SUCC ] https://example.com/index.js (URL)
-
-Regex name: Stripe Secret Token
-let google_map_api = "stripe:7b1a32f7h8377c0a"
-Confidence: Critical
-```
-
-### Scan Multiple URLs from a File
+LeakJS embeds comprehensive pattern definitions into the binary, so you can scan immediately without specifying any pattern file:
 
 ```bash
-leakjs -l urls.txt -p patterns.yaml -c 5 -o results.txt
-
-[ INF ] Current version v1.2.4 [updated]
-[ INF ] Templates loaded: 15
-
-[ SUCC ] https://example.com/index.js (URL)
-
-Regex name: Google Map API Key
-let google_map_api = "Aizashgkhheuuii746hg9875487hgjg"
-Confidence: Unknown
+leakjs -u "https://example.com/app.js"
 ```
 
-### Scan with All Embedded Patterns
+### 2. Crawl Website & Gather JS URLs (`--crawl` & `--crawl-only`)
+
+Gather all JavaScript URLs discovered across an entire site:
 
 ```bash
-leakjs -f script.js --all regex/
+# Crawl site and print all discovered JS files
+leakjs -u "https://example.com" --crawl --crawl-only -o js_urls.txt
 
-[INF] Templates loaded: 517
-
-script.js [AKIA1234567890123456] [High]
-script.js [sk_live_1234567890] [High]
+# Crawl up to depth 3 with max 100 pages, including subdomains
+leakjs -u "https://example.com" --crawl --crawl-only --depth 3 --max-pages 100 --subdomains
 ```
 
-### Scan with Pattern Exclusion
+### 3. Crawl Website and Scan for Leaks
+
+Spider a target website, extract all JS files, and immediately scan them for secrets and API keys:
 
 ```bash
-leakjs -u "https://example.com/app.js" --exclude "AWS Access Key ID,Generic API Key"
-
-[INF] Templates loaded: 515
+leakjs -u "https://example.com" --crawl -o leaks.txt
 ```
 
-### Benchmark Performance
+### 4. Authenticated Requests (Cookies & Custom Headers)
+
+Pass session cookies or authorization tokens to crawl protected areas and scan authenticated JS bundles:
 
 ```bash
-leakjs -f script.js --benchmark 5
+# Attach session cookie
+leakjs -u "https://target.com" --crawl --cookie "session=abc123xyz; remember_me=true"
 
-[INF] Running benchmark with 5 iterations...
-[BENCH] Iteration 1/5
-...
-[BENCH] Benchmark completed!
-Average scan time: 15.2ms
-Average matches per iteration: 3
+# Attach Authorization header & custom headers
+leakjs -u "https://target.com/app.js" -H "Authorization: Bearer eyJhbGci..." -H "X-Custom-Auth: secret"
 ```
 
-### Output in JSON Format
+### 5. Extract API Endpoints & Routes (`-E / --endpoints`)
+
+Extract all internal API endpoints, routes (`/api/v1/...`, `/graphql`, `/admin/...`), and URLs embedded in the JavaScript code:
 
 ```bash
-leakjs -u "https://example.com/script.js" -j
-
-{
-  "Stripe Secret Token": {
-    "matches": ["stripe:7b1a32f7h8377c0a"],
-    "confidence": "Critical"
-  }
-}
+leakjs -u "https://example.com/bundle.js" -E
 ```
 
-### Scan Multiple URLs from a File
+### 6. Detect Exposed Source Maps (`-m / --sourcemaps`)
+
+Detect if target JavaScript files reference exposed `.map` files that leak original unminified source code:
 
 ```bash
-leakjs -l urls.txt -p patterns.yaml -c 5 -o results.txt
-
-[ INF ] Current version v1.2.4 [updated]
-[ INF ] Templates Loaded: 15
-
-[ SUCC ] https://example.com/index.js
-Regex Name: Google Map API Key
-let google_map_api = "Aizashgkhheuuii746hg9875487hgjg"
-Confidence: Unknown
-
-[ SUCC ] https://example.com/index.js
-Regex Name: Google Drive API Key
-let google_map_api = "Aizashgkhcgdheuuii746hg9875487hhsx"
-Confidence: Unknown
+leakjs -u "https://example.com/main.js" -m
 ```
 
-### Scan a Local JavaScript File
+### 7. Proxy via Burp Suite or OWASP ZAP
+
+Route requests through a local proxy with self-signed certificate support:
 
 ```bash
-leakjs -f script.js -p patterns.yaml -c 5 -o results.txt
-
-[ INF ] Current version v1.2.4 [updated]
-[ INF ] Templates Loaded: 34
-
-[ SUCC ] https://example.com/index.js
-Regex Name: Email Addresses
-subscriber:"johndoe@gmail.com"
-Confidence: Low
+leakjs -u "https://example.com" --crawl --proxy "http://127.0.0.1:8080" -k
 ```
 
-### Directly Input Regex Patterns
-```bash
-leakjs -u "https://example.com/script.js" -r "[\w\.-]+@[a-zA-Z\d\.-]+\.[a-zA-Z]{2,};\b\d{3}-\d{2}-\d{4}\b" -c 5 -o results.txt
+### 8. Recursively Scan a Local Directory (`-d / --dir`)
 
-[ INF ] Current version v1.2.4 [updated]
-[ INF ] Templates Loaded: 2
-
-[ SUCC ] https://example.com/index.js
-Regex Name: Social Security Number
-_social_security:"A334-5677-982"
-Confidence: High
-
-Regex Name: Google Meet-ID
-compact_meeting = 0; var let id="https://meet.google.com/AED-56GBE-904"
-Confidence: Medium
-```
-
-### Display Help
+Scan all `.js` files in a folder:
 
 ```bash
-leakjs -h
-
-                        __    v1.2.4     __       _______
-                       / /   ___  ____ _/ /__    / / ___/
-                      / /   / _ \/ __ `/ //_/_  / /\__ \
-                     / /___/  __/ /_/ / ,< / /_/ /___/ /
-                    /_____/\___/\__,_/_/|_|\____//____/
-                                               @rootplinix
-
-
-    LeakJS - A JavaScript leak detection tool
-
-    Usage: leakjs [options]
-
-    Options:
-      -a, --all string        Path to directory containing all regex YAML files to load
-      -b, --benchmark int     Run benchmark with specified number of iterations
-      -C, --concurrency int   Number of concurrent requests (default 1)
-      -c, --config string     Path to configuration YAML file
-      -e, --exclude string    Comma-separated list of pattern names to exclude
-      -f, --file string       Path to a JavaScript file to scan
-      -h, --help              Show help message and exit
-      -j, --json              Output results in JSON format
-      -l, --list string       Path to the file containing URLs
-      -o, --output string     Path to the output file to save results
-      -p, --patterns string   Path to the YAML file containing patterns
-      -r, --regex string      Directly input regex patterns separated by ';'
-      -s, --silent            Show progress bar without any output in the terminal
-      -t, --stats             Show scan statistics at the end
-      -u, --url string        Single URL to scan
-      -v, --verbose           Enable verbose logging
-
-    Examples:
-      leakjs -u http://example.com/app.js
-      leakjs -l urls.txt --all regex/
-      leakjs -f script.js --exclude "AWS Access Key ID"
-      leakjs --benchmark 3 -f script.js
+leakjs -d ./downloaded_scripts/ -o results.txt
 ```
 
-## ⚙️ Configuration
+### 9. Scan Multiple Targets from a List
 
-LeakJS automatically discovers configuration files in standard locations, but you can also specify custom config files.
+```bash
+# Scan a list of JS URLs
+leakjs -l urls.txt -C 25 -o results.txt
 
-### Automatic Config Discovery
-LeakJS looks for config files in the following order:
-1. `~/.config/leakjs/config.yaml` (recommended)
-2. `~/.leakjs/config.yaml` (fallback)
-3. Command-line `--config` flag (overrides automatic discovery)
+# Crawl a list of root target websites
+leakjs -l targets.txt --crawl --crawl-only -o all_js.txt
+```
 
-### Example Configuration File
-Create `~/.config/leakjs/config.yaml`:
+### 10. Filter Patterns & Output JSON
+
+```bash
+# Show only high-confidence matches
+leakjs -u "https://example.com/app.js" --high-only
+
+# Exclude noisy patterns
+leakjs -u "https://example.com/app.js" --exclude "Generic API Key,Email Addresses"
+
+# Output structured JSON
+leakjs -u "https://example.com/app.js" -j
+```
+
+---
+
+## ⚙️ CLI Reference
+
+```text
+Usage:
+  leakjs [flags]
+
+Flags:
+  -u, --url string           Single URL to scan or seed URL to crawl
+  -l, --list string          Path to file containing URLs or crawl targets
+  -f, --file string          Path to a local JavaScript file to scan
+  -d, --dir string           Recursively scan a local directory for JavaScript files
+
+Crawl Options:
+      --crawl                Crawl website starting from seed URL(s) to discover all JS files
+      --crawl-only           Only crawl and output discovered JS URLs without scanning for leaks
+      --depth int            Maximum crawling depth (default 2)
+      --max-pages int        Maximum number of pages to crawl per target (default 50)
+      --subdomains           Include subdomains during crawling
+
+HTTP & Auth:
+      --cookie string        Cookie string attached to all requests (e.g. 'session=xyz; token=abc')
+      --cookies string       Alias for --cookie
+  -H, --header stringArray   Custom HTTP header(s), can be used multiple times
+      --proxy string         HTTP/HTTPS/SOCKS5 proxy (e.g. http://127.0.0.1:8080)
+  -k, --insecure             Skip TLS/SSL certificate verification
+      --timeout int          HTTP request timeout in seconds (default 15)
+      --delay int            Delay between requests in milliseconds
+      --user-agent string    Custom User-Agent header
+
+Recon Tools:
+  -E, --endpoints            Extract API endpoints, REST routes, and URLs from JS files
+  -m, --sourcemaps           Detect and verify exposed JavaScript source maps (.map)
+
+Patterns:
+  -p, --patterns string      Path to YAML pattern file (defaults to built-in patterns)
+  -r, --regex string         Direct regex patterns separated by ';'
+  -a, --all string           Path to directory containing all regex YAML files to load
+  -c, --config string        Path to configuration YAML file
+  -e, --exclude string       Comma-separated list of pattern names to exclude
+      --high-only            Show only high-confidence pattern matches
+
+Output & Concurrency:
+  -C, --concurrency int      Number of concurrent requests (default 20)
+  -o, --output string        Path to output file to save results
+  -v, --verbose              Enable verbose logging
+  -s, --silent               Show progress bar without console output
+  -j, --json                 Output results in JSON format
+  -t, --stats                Show scan statistics at the end
+  -b, --benchmark int        Run benchmark with specified number of iterations
+  -h, --help                 Show help message and exit
+```
+
+---
+
+## ⚙️ Configuration File
+
+LeakJS automatically checks for `~/.config/leakjs/config.yaml` or `~/.leakjs/config.yaml`:
 
 ```yaml
-# Concurrency settings
-concurrency: 4
-
-# Output options
-verbose: true
+concurrency: 20
+timeout: 15
+delay: 0
+depth: 2
+max_pages: 50
+subdomains: false
+cookies: "session=xyz123"
+headers:
+  - "Authorization: Bearer tokenXYZ"
+  - "X-Requested-With: XMLHttpRequest"
+user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+endpoints: true
+sourcemaps: true
+output: "results.txt"
+verbose: false
 silent: false
 json: false
 stats: true
-
-# Pattern configuration
-patterns_dir: "regex/"  # Optional: custom pattern directory
-patterns_file: ""       # Optional: custom pattern file
-exclude: "AWS Access Key ID,Generic API Key"  # Comma-separated patterns to exclude
-
-# Output settings
-output: "results.txt"
 ```
 
-### Custom Pattern Files
-You can still load additional patterns from YAML files:
+---
 
-```yaml
-patterns:
-  - pattern:
-      name: "Custom API Key"
-      regex: "custom[_-]?key[_-]?[=:]\s*[\"']?([a-zA-Z0-9_-]{20,})[\"']?"
-      confidence: "High"
-  - pattern:
-      name: "Internal Token"
-      regex: "internal[_-]?token[_-]?[=:]\s*[\"']?([a-zA-Z0-9_-]{32,})[\"']?"
-      confidence: "Medium"
+## 🧹 Repository Size & History Cleanup
+
+If you previously cloned the repository and noticed a larger download size (~13MB), this was due to historical snapshots of compiled binaries (`leakjs`) that were committed in past revisions.
+
+A clean `.gitignore` is now in place. To purge past binary blobs from your local clone and reduce the Git repository to **~250KB**, run:
+
+```bash
+git filter-branch --force --index-filter 'git rm --cached --ignore-unmatch leakjs' --prune-empty --tag-name-filter cat -- --all
+rm -rf .git/refs/original/
+git reflog expire --expire=now --all
+git gc --prune=now
 ```
 
-## 🤖 Automated Releases
-
-LeakJS uses GitHub Actions for automated building and releasing:
-
-- **Trigger**: Automatic releases on every push to the `main` branch
-- **Platforms**: Linux (AMD64/ARM64), macOS (AMD64/ARM64), Windows (AMD64/ARM64)
-- **Artifacts**: Optimized binaries with stripped debug information
-- **Versioning**: Uses Git tags and commit hashes for version identification
-
-### Manual Release
-You can also trigger releases manually using the GitHub Actions workflow dispatch feature.
+Then push to GitHub:
+```bash
+git push --force --all origin
+git push --force --tags origin
+```
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions! Please read our [CONTRIBUTING.md](https://github.com/the5orcerer/LeakJS/blob/main/CONTRIBUTING.md) for more information on how to get started.
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/the5orcerer/LeakJS/issues).
 
 ### Contributors
-
-- **the5orcerer**
-  - GitHub: [the5orcerer](https://github.com/the5orcerer)
-  - Twitter: [n30ron](https://twitter.com/n30ron)
+- **the5orcerer** ([@the5orcerer](https://github.com/the5orcerer))
 
 ## 📜 License
-
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/the5orcerer/LeakJS/blob/main/LICENSE) file for details.
-
-## 📧 Contact
-
-For any questions or suggestions, feel free to open an issue or contact us directly.
-
-![Twitter](https://img.shields.io/twitter/follow/n30ron?style=social) ![GitHub](https://img.shields.io/github/followers/the5orcerer?style=social)
-
----
-
-<p align="center">
-  <img src="https://forthebadge.com/images/badges/made-with-go.svg">
-  <img src="https://forthebadge.com/images/badges/built-with-love.svg">
-</p>
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
